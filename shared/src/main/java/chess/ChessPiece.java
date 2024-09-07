@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -9,8 +10,8 @@ import java.util.Collection;
  * signature of the existing methods.
  */
 public class ChessPiece {
-    private ChessGame.TeamColor pieceColor;
-    private ChessPiece.PieceType type;
+    private final ChessGame.TeamColor pieceColor;
+    private final ChessPiece.PieceType type;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor = pieceColor;
@@ -51,19 +52,19 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        Collection<ChessMove> emptyCollection = null;
-        //take the current position
-        //get the current type
-        //calculate all directions it could move
-
-
-        return emptyCollection;
+        //lets just print out all the moves
+        //for each possibility, print the row, and column
+        Collection<ChessMove> allMoves = returnAllPosibilites(board, myPosition);
+        for (ChessMove move : allMoves) {
+            System.out.println("row: " + move.getEndPosition().getRow() + " column : " + move.getEndPosition().getColumn());
+        }
+        return allMoves;
     }
 
     //helper functions that im adding
     private Collection<ChessMove> returnAllPosibilites(ChessBoard board, ChessPosition myPosition) {
-        Collection<ChessMove> emptyCollection = null;
-        Collection<ChessPosition> possibleEnd = null;
+        Collection<ChessMove> allMoves = new ArrayList<>();
+        Collection<ChessPosition> possibleEnd = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
         switch (this.type) {
@@ -129,30 +130,31 @@ public class ChessPiece {
                 break;
             case BISHOP:
                 //diagnal logic
-                while (column > 0 && row > 0) {
-                    column--;
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column > 0 && row < 9) {
-                    column--;
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column < 9 && row < 9) {
+                while (column < 9 && row < 9) { //up right
                     column++;
                     row++;
                     possibleEnd.add(new ChessPosition(row, column));
                 }
                 row = myPosition.getRow();
                 column = myPosition.getColumn();
-                while (column < 9 && row > 0) {
+                while (column < 9 && row > 0) { //down right
                     column++;
                     row--;
+                    possibleEnd.add(new ChessPosition(row, column));
+                }
+                row = myPosition.getRow();
+                column = myPosition.getColumn();
+
+                while (column > 0 && row > 0) { //down left
+                    column--;
+                    row--;
+                    possibleEnd.add(new ChessPosition(row, column));
+                }
+                row = myPosition.getRow();
+                column = myPosition.getColumn();
+                while (column > 0 && row < 9) { //up left
+                    column--;
+                    row++;
                     possibleEnd.add(new ChessPosition(row, column));
                 }
                 break;
@@ -189,14 +191,29 @@ public class ChessPiece {
                 column = myPosition.getColumn();
                 break;
             case PAWN:
-                possibleEnd.add(new ChessPosition(row + 2, column)); //up two
-                possibleEnd.add(new ChessPosition(row + 1, column)); //up one
+                if (this.pieceColor == ChessGame.TeamColor.WHITE) {
+                    possibleEnd.add(new ChessPosition(row + 2, column)); //up two
+                    possibleEnd.add(new ChessPosition(row + 1, column)); //up one
+                }
+                if (this.pieceColor == ChessGame.TeamColor.BLACK) {
+                    possibleEnd.add(new ChessPosition(row -2, column)); //up two
+                    possibleEnd.add(new ChessPosition(row - 1, column)); //up one
+                }
                 possibleEnd.add(new ChessPosition(row + 1, column + 1)); //up right
                 possibleEnd.add(new ChessPosition(row - 1, column + 1)); //down right
                 possibleEnd.add(new ChessPosition(row - 1, column - 1)); //down left
                 possibleEnd.add(new ChessPosition(row + 1, column - 1)); //up left
                 break;
         }
+        //create moves, and validate
+        for (ChessPosition position : possibleEnd) {
+            column = position.getColumn();
+            row = position.getRow();
+            if (column > 0 && column < 9 && row > 0 && row < 9) {
+                allMoves.add(new ChessMove(myPosition, position, this.type));
+            }
+        }
+        return allMoves;
     }
 
 }
