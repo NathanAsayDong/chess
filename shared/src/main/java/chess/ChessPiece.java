@@ -2,6 +2,7 @@ package chess;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 
 /**
  * Represents a single chess piece
@@ -16,6 +17,27 @@ public class ChessPiece {
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor = pieceColor;
         this.type = type;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true; // this is where the memory address comparison happens
+        if (o == null || getClass() != o.getClass()) return false;
+        ChessPiece that = (ChessPiece) o; // this is type cast
+        return pieceColor == that.pieceColor && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pieceColor, type);
+    }
+
+    @Override
+    public String toString() {
+        return "ChessPiece{" +
+                "pieceColor=" + pieceColor +
+                ", type=" + type +
+                '}';
     }
 
     /**
@@ -43,6 +65,7 @@ public class ChessPiece {
     public PieceType getPieceType() {
         return this.type;
     }
+
 
     /**
      * Calculates all the positions a chess piece can move to
