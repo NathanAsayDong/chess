@@ -90,14 +90,7 @@ public class ChessPiece {
         System.out.println("start position" + row + column);
         switch (this.type) {
             case KING:
-                possibleEnd.add(new ChessPosition(row + 1, column + 1));
-                possibleEnd.add(new ChessPosition(row + 1, column));
-                possibleEnd.add(new ChessPosition(row + 1, column - 1));
-                possibleEnd.add(new ChessPosition(row, column + 1));
-                possibleEnd.add(new ChessPosition(row , column - 1));
-                possibleEnd.add(new ChessPosition(row -1 , column + 1));
-                possibleEnd.add(new ChessPosition(row - 1, column));
-                possibleEnd.add(new ChessPosition(row - 1, column - 1));
+                possibleEnd = getPossibleKingPositions(board, myPosition);
                 break;
             case QUEEN:
                 possibleEnd = getPossibleRookPositions(board, myPosition);
@@ -107,31 +100,13 @@ public class ChessPiece {
                 possibleEnd = getPossibleBishopPositions(board, myPosition);
                 break;
             case KNIGHT:
-                possibleEnd.add(new ChessPosition(row + 3, column + 2));
-                possibleEnd.add(new ChessPosition(row + 3, column - 2));
-                possibleEnd.add(new ChessPosition(row - 3, column + 2));
-                possibleEnd.add(new ChessPosition(row - 3, column - 2));
-                possibleEnd.add(new ChessPosition(row + 2, column + 3));
-                possibleEnd.add(new ChessPosition(row + 2, column - 3));
-                possibleEnd.add(new ChessPosition(row - 2, column + 3));
-                possibleEnd.add(new ChessPosition(row - 2, column - 3));
+                possibleEnd = getPossibleKnightPositions(board, myPosition);
                 break;
             case ROOK:
                 possibleEnd = getPossibleRookPositions(board, myPosition);
                 break;
             case PAWN:
-                if (this.pieceColor == ChessGame.TeamColor.WHITE) {
-                    possibleEnd.add(new ChessPosition(row + 2, column)); //up two
-                    possibleEnd.add(new ChessPosition(row + 1, column)); //up one
-                }
-                if (this.pieceColor == ChessGame.TeamColor.BLACK) {
-                    possibleEnd.add(new ChessPosition(row -2, column)); //up two
-                    possibleEnd.add(new ChessPosition(row - 1, column)); //up one
-                }
-                possibleEnd.add(new ChessPosition(row + 1, column + 1)); //up right
-                possibleEnd.add(new ChessPosition(row - 1, column + 1)); //down right
-                possibleEnd.add(new ChessPosition(row - 1, column - 1)); //down left
-                possibleEnd.add(new ChessPosition(row + 1, column - 1)); //up left
+                possibleEnd = getPossiblePawnPositions(board, myPosition);
                 break;
         }
         for (ChessPosition position : possibleEnd) { //used for pawns, kings, and knights
@@ -143,6 +118,9 @@ public class ChessPiece {
         }
         return allMoves;
     }
+
+
+    //Helper Functions
 
     private boolean encounterTeammate(ChessBoard board, ChessPosition position) {
         if (board.getPiece(position) == null) {
@@ -165,7 +143,6 @@ public class ChessPiece {
         }
     }
 
-    //Helper Functions
     private Collection<ChessPosition> getPossibleBishopPositions(ChessBoard board, ChessPosition myPosition) {
         Collection<ChessPosition> possibleMoves = new ArrayList<>();
         int row = myPosition.getRow();
@@ -293,6 +270,53 @@ public class ChessPiece {
         return possibleMoves;
     }
 
+    private Collection<ChessPosition> getPossibleKingPositions(ChessBoard board, ChessPosition myPosition) {
+        Collection<ChessPosition> possibleEnd = new ArrayList<>();
+        int row = myPosition.getRow();
+        int column = myPosition.getColumn();
+        possibleEnd.add(new ChessPosition(row + 1, column + 1));
+        possibleEnd.add(new ChessPosition(row + 1, column));
+        possibleEnd.add(new ChessPosition(row + 1, column - 1));
+        possibleEnd.add(new ChessPosition(row, column + 1));
+        possibleEnd.add(new ChessPosition(row, column - 1));
+        possibleEnd.add(new ChessPosition(row - 1, column + 1));
+        possibleEnd.add(new ChessPosition(row - 1, column));
+        possibleEnd.add(new ChessPosition(row - 1, column - 1));
+        return possibleEnd;
+    }
+
+    private Collection<ChessPosition> getPossibleKnightPositions(ChessBoard board, ChessPosition myPosition) {
+        Collection<ChessPosition> possibleEnd = new ArrayList<>();
+        int row = myPosition.getRow();
+        int column = myPosition.getColumn();
+        possibleEnd.add(new ChessPosition(row + 3, column + 2));
+        possibleEnd.add(new ChessPosition(row + 3, column - 2));
+        possibleEnd.add(new ChessPosition(row - 3, column + 2));
+        possibleEnd.add(new ChessPosition(row - 3, column - 2));
+        possibleEnd.add(new ChessPosition(row + 2, column + 3));
+        possibleEnd.add(new ChessPosition(row + 2, column - 3));
+        possibleEnd.add(new ChessPosition(row - 2, column + 3));
+        possibleEnd.add(new ChessPosition(row - 2, column - 3));
+        return possibleEnd;
+    }
+
+    private Collection<ChessPosition> getPossiblePawnPositions(ChessBoard board, ChessPosition myPosition) {
+        Collection<ChessPosition> possibleEnd = new ArrayList<>();
+        int row = myPosition.getRow();
+        int column = myPosition.getColumn();
+        if (this.pieceColor == ChessGame.TeamColor.WHITE) {
+            possibleEnd.add(new ChessPosition(row + 2, column)); //up two
+            possibleEnd.add(new ChessPosition(row + 1, column)); //up one
+        }
+        if (this.pieceColor == ChessGame.TeamColor.BLACK) {
+            possibleEnd.add(new ChessPosition(row -2, column)); //up two
+            possibleEnd.add(new ChessPosition(row - 1, column)); //up one
+        }
+        possibleEnd.add(new ChessPosition(row + 1, column + 1)); //up right
+        possibleEnd.add(new ChessPosition(row - 1, column + 1)); //down right
+        possibleEnd.add(new ChessPosition(row - 1, column - 1)); //down left
+        possibleEnd.add(new ChessPosition(row + 1, column - 1)); //up left
+    }
 
 
 
