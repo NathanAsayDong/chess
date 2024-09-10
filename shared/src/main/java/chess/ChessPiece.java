@@ -1,5 +1,6 @@
 package chess;
 
+import javax.swing.text.Position;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -75,12 +76,8 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        //lets just print out all the moves
-        //for each possibility, print the row, and column
         Collection<ChessMove> allMoves = returnAllPosibilites(board, myPosition);
-        for (ChessMove move : allMoves) {
-            System.out.println("row: " + move.getEndPosition().getRow() + " column : " + move.getEndPosition().getColumn());
-        }
+        //filter out all moves that take the spot of a current team piece
         return allMoves;
     }
 
@@ -90,6 +87,7 @@ public class ChessPiece {
         Collection<ChessPosition> possibleEnd = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
+        System.out.println("start position" + row + column);
         switch (this.type) {
             case KING:
                 possibleEnd.add(new ChessPosition(row + 1, column + 1));
@@ -102,84 +100,11 @@ public class ChessPiece {
                 possibleEnd.add(new ChessPosition(row - 1, column - 1));
                 break;
             case QUEEN:
-                //horizontal logic
-                while (row < 9) {
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                while (row > 0) {
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                while (column < 9) {
-                    column++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                column = myPosition.getColumn();
-                while (column > 0) {
-                    column--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                column = myPosition.getColumn();
-                //diagnal logic
-                while (column > 0 && row > 0) {
-                    column--;
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column > 0 && row < 9) {
-                    column--;
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column < 9 && row < 9) {
-                    column++;
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column < 9 && row > 0) {
-                    column++;
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
+                possibleEnd = getPossibleRookPositions(board, myPosition);
+                possibleEnd.addAll(getPossibleBishopPositions(board, myPosition));
                 break;
             case BISHOP:
-                //diagnal logic
-                while (column < 9 && row < 9) { //up right
-                    column++;
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column < 9 && row > 0) { //down right
-                    column++;
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-
-                while (column > 0 && row > 0) { //down left
-                    column--;
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                column = myPosition.getColumn();
-                while (column > 0 && row < 9) { //up left
-                    column--;
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
+                possibleEnd = getPossibleBishopPositions(board, myPosition);
                 break;
             case KNIGHT:
                 possibleEnd.add(new ChessPosition(row + 3, column + 2));
@@ -192,26 +117,7 @@ public class ChessPiece {
                 possibleEnd.add(new ChessPosition(row - 2, column - 3));
                 break;
             case ROOK:
-                while (row < 9) {
-                    row++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                while (row > 0) {
-                    row--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                row = myPosition.getRow();
-                while (column < 9) {
-                    column++;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                column = myPosition.getColumn();
-                while (column > 0) {
-                    column--;
-                    possibleEnd.add(new ChessPosition(row, column));
-                }
-                column = myPosition.getColumn();
+                possibleEnd = getPossibleRookPositions(board, myPosition);
                 break;
             case PAWN:
                 if (this.pieceColor == ChessGame.TeamColor.WHITE) {
@@ -228,15 +134,167 @@ public class ChessPiece {
                 possibleEnd.add(new ChessPosition(row + 1, column - 1)); //up left
                 break;
         }
-        //create moves, and validate
-        for (ChessPosition position : possibleEnd) {
+        for (ChessPosition position : possibleEnd) { //used for pawns, kings, and knights
             column = position.getColumn();
             row = position.getRow();
             if (column > 0 && column < 9 && row > 0 && row < 9) {
-                allMoves.add(new ChessMove(myPosition, position, this.type));
+                allMoves.add(new ChessMove(myPosition, position, null));
             }
         }
         return allMoves;
     }
 
+    private boolean encounterTeammate(ChessBoard board, ChessPosition position) {
+        if (board.getPiece(position) == null) {
+            return false;
+        }
+        ChessGame.TeamColor encounterColor = board.getPiece(position).pieceColor;
+        return this.pieceColor == encounterColor;
+    }
+
+    private boolean encounterEnemy(ChessBoard board, ChessPosition position) {
+        if (board.getPiece(position) == null) {
+            return false;
+        }
+        ChessGame.TeamColor encounterColor = board.getPiece(position).pieceColor;
+        if (this.pieceColor != encounterColor) {
+            System.out.println("Hit enemy at" + position.toString());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //Helper Functions
+    private Collection<ChessPosition> getPossibleBishopPositions(ChessBoard board, ChessPosition myPosition) {
+        Collection<ChessPosition> possibleMoves = new ArrayList<>();
+        int row = myPosition.getRow();
+        int column = myPosition.getColumn();
+        while (column < 8 && row < 8) { //up right
+            column++;
+            row++;
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) { // error
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        row = myPosition.getRow();
+        column = myPosition.getColumn();
+        while (column < 8 && row > 1) { //down right
+            column++;
+            row--;
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        row = myPosition.getRow();
+        column = myPosition.getColumn();
+        while (column > 1 && row > 1) { //down left
+            column--;
+            row--;
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        row = myPosition.getRow();
+        column = myPosition.getColumn();
+        while (column > 1 && row < 8) { //up left
+            column--;
+            row++;
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        return possibleMoves;
+    }
+
+    private Collection<ChessPosition> getPossibleRookPositions(ChessBoard board, ChessPosition myPosition) {
+        Collection<ChessPosition> possibleMoves = new ArrayList<>();
+        int row = myPosition.getRow();
+        int column = myPosition.getColumn();
+        while (row < 8) {
+            row++;
+            if (row == 0 || row == 9) { break; }
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        row = myPosition.getRow();
+        while (row > 0) {
+            row--;
+            if (row == 0 || row == 9) { break; }
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        row = myPosition.getRow();
+        while (column < 8) {
+            column++;
+            if (column == 0 || column == 9) { break; }
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        column = myPosition.getColumn();
+        while (column > 0) {
+            column--;
+            if (column == 0 || column == 9) { break; }
+            ChessPosition position = new ChessPosition(row, column);
+            if (encounterTeammate(board, position)) {
+                break;
+            }
+            if (encounterEnemy(board, position)) {
+                possibleMoves.add(position);
+                break;
+            }
+            possibleMoves.add(position);
+        }
+        return possibleMoves;
+    }
+
+
+
+
 }
+

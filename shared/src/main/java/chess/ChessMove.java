@@ -59,10 +59,7 @@ public class ChessMove {
 
     @Override
     public String toString() {
-        return "ChessMove{" +
-                "startPosition=" + startPosition +
-                ", endPosition=" + endPosition +
-                ", promotionPiece=" + promotionPiece +
-                '}';
+        //convert my row to a - f
+        return "Row" + this.endPosition.getRow() + " column" + this.endPosition.getColumn();
     }
 }

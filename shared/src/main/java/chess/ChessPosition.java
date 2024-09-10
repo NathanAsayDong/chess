@@ -7,12 +7,16 @@ import java.util.Objects;
  * <p>
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
+ * !! needs to use index 1 - 8
  */
 public class ChessPosition {
     private int row;
     private int column;
 
     public ChessPosition(int row, int col) {
+        if (row < 1 || row > 8 || col < 1 || col > 8) {
+            throw new IllegalArgumentException("row or column out of bounds");
+        }
         this.row = row;
         this.column = col;
     }

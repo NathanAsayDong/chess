@@ -58,9 +58,6 @@ public class ChessGame {
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
         throw new RuntimeException("Not implemented");
-        //if the move is off the board
-        //if their is a piece there
-            //if that piece is your own
     }
 
     /**
