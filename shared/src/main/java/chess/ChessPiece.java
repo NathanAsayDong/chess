@@ -108,10 +108,10 @@ public class ChessPiece {
                 possibleEnd = getPossiblePawnPositions(board, myPosition);
                 break;
         }
-        for (ChessPosition position : possibleEnd) { //used for pawns, kings, and knights
-            column = position.getColumn();
-            row = position.getRow();
-            if (column > 0 && column < 9 && row > 0 && row < 9) {
+        for (ChessPosition position : possibleEnd) {
+            if (this.type == PieceType.PAWN) {
+                allMoves.addAll(handlePawnPromotion(board, position, myPosition));
+            } else {
                 allMoves.add(new ChessMove(myPosition, position, null));
             }
         }
@@ -120,6 +120,28 @@ public class ChessPiece {
 
 
     //Helper Functions
+
+    private Collection<ChessMove> handlePawnPromotion(ChessBoard board, ChessPosition position, ChessPosition myPosition) {
+        Collection<ChessMove> moves = new ArrayList<>();
+        //if its white and top row
+        if (this.pieceColor == ChessGame.TeamColor.WHITE && position.getRow() == 8) {
+            moves.add(new ChessMove(myPosition, position, PieceType.BISHOP));
+            moves.add(new ChessMove(myPosition, position, PieceType.KNIGHT));
+            moves.add(new ChessMove(myPosition, position, PieceType.ROOK));
+            moves.add(new ChessMove(myPosition, position, PieceType.QUEEN));
+        }
+        else if (this.pieceColor == ChessGame.TeamColor.BLACK && position.getRow() == 1) {
+            moves.add(new ChessMove(myPosition, position, PieceType.BISHOP));
+            moves.add(new ChessMove(myPosition, position, PieceType.KNIGHT));
+            moves.add(new ChessMove(myPosition, position, PieceType.ROOK));
+            moves.add(new ChessMove(myPosition, position, PieceType.QUEEN));
+        }
+        else {
+            moves.add(new ChessMove(myPosition, position, null));
+        }
+       return moves;
+    }
+
 
     private boolean encounterTeammate(ChessBoard board, ChessPosition position) {
         if (board.getPiece(position) == null) {
