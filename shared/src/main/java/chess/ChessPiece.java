@@ -87,7 +87,6 @@ public class ChessPiece {
         Collection<ChessPosition> possibleEnd = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
-        System.out.println("start position" + row + column);
         switch (this.type) {
             case KING:
                 possibleEnd = getPossibleKingPositions(board, myPosition);
@@ -274,14 +273,31 @@ public class ChessPiece {
         Collection<ChessPosition> possibleEnd = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
-        possibleEnd.add(new ChessPosition(row + 1, column + 1));
-        possibleEnd.add(new ChessPosition(row + 1, column));
-        possibleEnd.add(new ChessPosition(row + 1, column - 1));
-        possibleEnd.add(new ChessPosition(row, column + 1));
-        possibleEnd.add(new ChessPosition(row, column - 1));
-        possibleEnd.add(new ChessPosition(row - 1, column + 1));
-        possibleEnd.add(new ChessPosition(row - 1, column));
-        possibleEnd.add(new ChessPosition(row - 1, column - 1));
+        if (row > 1) {
+            if (column > 1) {
+                possibleEnd.add(new ChessPosition(row - 1, column - 1));
+            }
+            if (column < 8) {
+                possibleEnd.add(new ChessPosition(row - 1, column + 1));
+            }
+            possibleEnd.add(new ChessPosition(row - 1, column));
+        }
+        if (row < 8) {
+            if (column > 1) {
+                possibleEnd.add(new ChessPosition(row + 1, column - 1));
+            }
+            if (column < 8) {
+                possibleEnd.add(new ChessPosition(row + 1, column + 1));
+            }
+            possibleEnd.add(new ChessPosition(row + 1, column));
+        }
+        if (column > 1) {
+            possibleEnd.add(new ChessPosition(row, column - 1));
+        }
+        if (column < 8) {
+            possibleEnd.add(new ChessPosition(row, column + 1));
+        }
+        possibleEnd.removeIf(position -> encounterTeammate(board, position));
         return possibleEnd;
     }
 
@@ -289,33 +305,93 @@ public class ChessPiece {
         Collection<ChessPosition> possibleEnd = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
-        possibleEnd.add(new ChessPosition(row + 3, column + 2));
-        possibleEnd.add(new ChessPosition(row + 3, column - 2));
-        possibleEnd.add(new ChessPosition(row - 3, column + 2));
-        possibleEnd.add(new ChessPosition(row - 3, column - 2));
-        possibleEnd.add(new ChessPosition(row + 2, column + 3));
-        possibleEnd.add(new ChessPosition(row + 2, column - 3));
-        possibleEnd.add(new ChessPosition(row - 2, column + 3));
-        possibleEnd.add(new ChessPosition(row - 2, column - 3));
+        if (column > 1 && row > 2) {
+            possibleEnd.add(new ChessPosition(row - 2, column - 1));
+        }
+        if (column > 1 && row < 7) {
+            possibleEnd.add(new ChessPosition(row + 2, column - 1));
+        }
+        if (column > 2) {
+            if (row > 1) {
+                possibleEnd.add(new ChessPosition(row - 1, column - 2));
+            }
+            if (row < 8) {
+                possibleEnd.add(new ChessPosition(row + 1, column - 2));
+            }
+        }
+        if (column < 8) {
+            if (row < 7) {
+                possibleEnd.add(new ChessPosition(row + 2, column + 1));
+            }
+            if (row > 2) {
+                possibleEnd.add(new ChessPosition(row - 2, column + 1));
+            }
+        }
+        if (column < 7) {
+            if (row < 8) {
+                possibleEnd.add(new ChessPosition(row + 1, column + 2));
+            }
+            if (row > 1) {
+                possibleEnd.add(new ChessPosition(row - 1, column + 2));
+            }
+        }
+        possibleEnd.removeIf(position -> encounterTeammate(board, position));
         return possibleEnd;
     }
 
+
+    //Pawns normally may move forward one square if that square is unoccupied,
+    // though if it is the first time that pawn is being moved, it may be moved forward
+    // 2 squares (provided both squares are unoccupied). Pawns cannot capture forward,
+    // but instead capture forward diagonally (1 square forward and 1 square sideways).
+    // They may only move diagonally like this if capturing an enemy piece.
+    // When a pawn moves to the end of the board (row 8 for white and row 1 for black),
+    // they get promoted and are replaced with the player's choice of Rook, Knight, Bishop,
+    // or Queen (they cannot stay a Pawn or become King).
+    //white is bottom, black is on top
     private Collection<ChessPosition> getPossiblePawnPositions(ChessBoard board, ChessPosition myPosition) {
         Collection<ChessPosition> possibleEnd = new ArrayList<>();
+        Collection<ChessPosition> diagnal = new ArrayList<>();
         int row = myPosition.getRow();
         int column = myPosition.getColumn();
         if (this.pieceColor == ChessGame.TeamColor.WHITE) {
-            possibleEnd.add(new ChessPosition(row + 2, column)); //up two
-            possibleEnd.add(new ChessPosition(row + 1, column)); //up one
+            if (myPosition.getRow() == 2) {
+                ChessPosition singleJump = (new ChessPosition(row + 1, column));
+                if (!encounterEnemy(board, singleJump) && !encounterTeammate(board, singleJump)) {
+                    possibleEnd.add(new ChessPosition(row + 2, column)); //up two
+                }
+            }
+            if (row < 8) {
+                possibleEnd.add(new ChessPosition(row + 1, column)); //up one
+            }
+            if (row < 8 && column < 8 ) {
+                diagnal.add(new ChessPosition(row + 1, column + 1)); //up right
+            }
+            if (row < 8 && column > 1 ) {
+                diagnal.add(new ChessPosition(row + 1, column - 1)); //up left
+            }
         }
         if (this.pieceColor == ChessGame.TeamColor.BLACK) {
-            possibleEnd.add(new ChessPosition(row -2, column)); //up two
-            possibleEnd.add(new ChessPosition(row - 1, column)); //up one
+            if (myPosition.getRow() == 7) {
+                ChessPosition singleJump = new ChessPosition(row - 1, column);
+                if (!encounterTeammate(board, singleJump) && !encounterEnemy(board, singleJump)) {
+                    possibleEnd.add(new ChessPosition(row - 2, column)); //up two
+                }
+            }
+            if (row > 1) {
+                possibleEnd.add(new ChessPosition(row - 1, column)); //up one
+            }
+            if (row > 1 && column > 1 ) {
+                diagnal.add(new ChessPosition(row - 1, column - 1)); //down left
+            }
+            if (row > 1  && column < 8 ) {
+                diagnal.add(new ChessPosition(row - 1, column + 1)); //down right
+            }
         }
-        possibleEnd.add(new ChessPosition(row + 1, column + 1)); //up right
-        possibleEnd.add(new ChessPosition(row - 1, column + 1)); //down right
-        possibleEnd.add(new ChessPosition(row - 1, column - 1)); //down left
-        possibleEnd.add(new ChessPosition(row + 1, column - 1)); //up left
+        possibleEnd.removeIf(position -> encounterEnemy(board, position) || encounterTeammate(board, position));
+        diagnal.removeIf(position -> !encounterEnemy(board, position));
+        possibleEnd.addAll(diagnal);
+        return possibleEnd;
     }
 
 
