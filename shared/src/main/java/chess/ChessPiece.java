@@ -137,7 +137,7 @@ public class ChessPiece {
         else {
             moves.add(new ChessMove(myPosition, position, null));
         }
-       return moves;
+        return moves;
     }
 
 
