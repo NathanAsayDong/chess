@@ -38,6 +38,16 @@ public class ChessBoard {
     }
 
     /**
+     * Sets the board location to emptpy
+     *
+     * @param position The position to remove the piece at
+     */
+    public void removePiece(ChessPosition position) {
+        this.board[position.getRow() - 1][position.getColumn() - 1] = null;
+    }
+
+
+    /**
      * Sets the board to the default starting board
      * (How the game of chess normally starts)
      */
