@@ -85,9 +85,7 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        Collection<ChessMove> allMoves = returnAllPosibilites(board, myPosition);
-        //filter out all moves that take the spot of a current team piece
-        return allMoves;
+        return returnAllPosibilites(board, myPosition);
     }
 
     //helper functions that im adding

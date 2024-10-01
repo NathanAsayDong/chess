@@ -78,7 +78,21 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        //iterate through all the pieces and see if their possible moves include the king
+        Collection<ChessPiece> allPieces = this.board.getAllPieces();
+        for (ChessPiece piece : allPieces) {
+            if (piece.getTeamColor() != teamColor) {
+                continue;
+            } else {
+                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiece(piece));
+                for (ChessMove move : moves) {
+                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -89,6 +103,8 @@ public class ChessGame {
      */
     public boolean isInCheckmate(TeamColor teamColor) {
         throw new RuntimeException("Not implemented");
+        //check for in check
+        //then if in check, check the kings possible moves, if the king cant move then check if the defending pieces can clear all attacking pieces
     }
 
     /**
@@ -99,7 +115,18 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        Collection<ChessPiece> allPieces = this.board.getAllPieces();
+        for (ChessPiece piece : allPieces) {
+            if (piece.getTeamColor() != teamColor) {
+                continue;
+            } else {
+                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiece(piece));
+                if (!moves.isEmpty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

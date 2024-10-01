@@ -1,6 +1,8 @@
 package chess;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Objects;
 
 /**
@@ -88,6 +90,31 @@ public class ChessBoard {
         board[7][6] = new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT);
         board[7][7] = new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK);
     }
+
+
+    public Collection<ChessPiece> getAllPieces() {
+        Collection<ChessPiece> allPieces = new ArrayList<>();
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < 8; j++) {
+                if(board[i][j] != null) {
+                    allPieces.add(board[i][j]);
+                }
+            }
+        }
+        return allPieces;
+    }
+
+    public ChessPosition getPiece(ChessPiece piece) {
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < 8; j++) {
+                if(board[i][j] == piece) {
+                    return new ChessPosition(i + 1, j + 1);
+                }
+            }
+        }
+        return null;
+    }
+
 
     @Override
     public boolean equals(Object o) {
