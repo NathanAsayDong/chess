@@ -40,7 +40,7 @@ public class ChessBoard {
     }
 
     /**
-     * Sets the board location to emptpy
+     * Sets the board location to empty
      *
      * @param position The position to remove the piece at
      */
@@ -104,7 +104,7 @@ public class ChessBoard {
         return allPieces;
     }
 
-    public ChessPosition getPiece(ChessPiece piece) {
+    public ChessPosition getPiecePosition(ChessPiece piece) {
         for(int i = 0; i < 8; i++) {
             for(int j = 0; j < 8; j++) {
                 if(board[i][j] == piece) {
@@ -113,6 +113,18 @@ public class ChessBoard {
             }
         }
         return null;
+    }
+
+    public ChessBoard makeCopy() {
+        ChessBoard newBoard = new ChessBoard();
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < 8; j++) {
+                if(board[i][j] != null) {
+                    newBoard.addPiece(new ChessPosition(i + 1, j + 1), board[i][j].makeCopy());
+                }
+            }
+        }
+        return newBoard;
     }
 
 

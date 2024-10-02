@@ -52,7 +52,23 @@ public class ChessGame {
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         //get the piece, then use the piece to get all moves and return them
         ChessPiece piece = this.board.getPiece(startPosition);
-        return piece.pieceMoves(this.board, startPosition);
+        if (piece == null) {
+            return null;
+        }
+        Collection<ChessMove> allMoves = piece.pieceMoves(this.board, startPosition);
+        allMoves = allMoves.stream().filter(
+                move -> {
+                    try {
+                        ChessGame game = new ChessGame();
+                        game.setBoard(this.board.makeCopy());
+                        game.makeMove(move);
+                        return !game.isInCheck(this.currentTeam);
+                    } catch (InvalidMoveException e) {
+                        return false;
+                    }
+                }
+        ).toList();
+        return allMoves;
     }
 
     /**
@@ -62,8 +78,10 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        //get the piece, then set the piece at the end location, update if there is a promotion piece
         ChessPiece piece = this.board.getPiece(move.getStartPosition());
+        if (isInStalemate(this.currentTeam)) {
+            throw new InvalidMoveException("Stalemate");
+        }
         this.board.removePiece(move.getStartPosition());
         if (move.getPromotionPiece() != null) {
             piece.setPieceType(move.getPromotionPiece());
@@ -78,15 +96,16 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        //iterate through all the pieces and see if their possible moves include the king
         Collection<ChessPiece> allPieces = this.board.getAllPieces();
         for (ChessPiece piece : allPieces) {
             if (piece.getTeamColor() != teamColor) {
-                continue;
-            } else {
-                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiece(piece));
+                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
                 for (ChessMove move : moves) {
-                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING) {
+                    ChessPiece end_piece = this.board.getPiece(move.getEndPosition());
+                    if (end_piece == null) {
+                        continue;
+                    }
+                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
                         return true;
                     }
                 }
@@ -120,7 +139,7 @@ public class ChessGame {
             if (piece.getTeamColor() != teamColor) {
                 continue;
             } else {
-                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiece(piece));
+                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
                 if (!moves.isEmpty()) {
                     return false;
                 }

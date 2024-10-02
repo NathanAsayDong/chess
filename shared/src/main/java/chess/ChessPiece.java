@@ -239,7 +239,7 @@ public class ChessPiece {
         int column = myPosition.getColumn();
         while (row < 8) {
             row++;
-            if (row == 0 || row == 9) { break; }
+            if (row == 0) { break; }
             ChessPosition position = new ChessPosition(row, column);
             if (encounterTeammate(board, position)) {
                 break;
@@ -410,7 +410,9 @@ public class ChessPiece {
         return possibleEnd;
     }
 
-
+    public ChessPiece makeCopy() {
+        return new ChessPiece(this.pieceColor, this.type);
+    }
 
 }
 
