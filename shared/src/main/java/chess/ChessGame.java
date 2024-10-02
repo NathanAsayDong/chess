@@ -59,10 +59,8 @@ public class ChessGame {
         allMoves = allMoves.stream().filter(
                 move -> {
                     try {
-                        ChessGame game = new ChessGame();
-                        game.setBoard(this.board.makeCopy());
-                        game.makeMove(move);
-                        return !game.isInCheck(this.currentTeam);
+                        makeMove(move);
+                        return true;
                     } catch (InvalidMoveException e) {
                         return false;
                     }
@@ -78,15 +76,35 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+        //move check and checkmate assertions to this function
         ChessPiece piece = this.board.getPiece(move.getStartPosition());
-        if (isInStalemate(this.currentTeam)) {
-            throw new InvalidMoveException("Stalemate");
+        ChessPiece end_piece = this.board.getPiece(move.getEndPosition());
+        if (piece == null) {
+            throw new InvalidMoveException("No piece at start position");
         }
-        this.board.removePiece(move.getStartPosition());
+        Collection<ChessMove> possibleMoves = piece.pieceMoves(this.board, move.getStartPosition());
+        if (piece.getTeamColor() != this.currentTeam) {
+            throw new InvalidMoveException("Not this team's turn");
+        }
+        if (end_piece != null && end_piece.getTeamColor() == this.currentTeam) {
+            throw new InvalidMoveException("Cannot take own piece");
+        }
         if (move.getPromotionPiece() != null) {
             piece.setPieceType(move.getPromotionPiece());
         }
+        if (!possibleMoves.contains(move)) {
+            throw new InvalidMoveException("Move not possible for piece");
+        }
+        ChessGame game = new ChessGame();
+        game.setBoard(this.board.makeCopy());
+        game.getBoard().removePiece(move.getStartPosition());
+        game.getBoard().addPiece(move.getEndPosition(), piece);
+        if (game.isInCheck(this.currentTeam)) {
+            throw new InvalidMoveException("Move puts own king in check");
+        }
+        this.board.removePiece(move.getStartPosition());
         this.board.addPiece(move.getEndPosition(), piece);
+        this.setTeamTurn(this.currentTeam == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
     }
 
     /**
