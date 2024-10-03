@@ -50,7 +50,6 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        //get the piece, then use the piece to get all moves and return them
         ChessPiece piece = this.board.getPiece(startPosition);
         if (piece == null) {
             return null;
@@ -59,7 +58,10 @@ public class ChessGame {
         allMoves = allMoves.stream().filter(
                 move -> {
                     try {
-                        makeMove(move);
+                        ChessGame game = new ChessGame();
+                        game.setBoard(this.board.makeCopy());
+                        game.setTeamTurn(piece.getTeamColor());
+                        game.makeMove(move);
                         return true;
                     } catch (InvalidMoveException e) {
                         return false;
@@ -76,7 +78,7 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        //move check and checkmate assertions to this function
+        boolean captured_piece = false;
         ChessPiece piece = this.board.getPiece(move.getStartPosition());
         ChessPiece end_piece = this.board.getPiece(move.getEndPosition());
         if (piece == null) {
@@ -102,9 +104,14 @@ public class ChessGame {
         if (game.isInCheck(this.currentTeam)) {
             throw new InvalidMoveException("Move puts own king in check");
         }
+        if (end_piece != null && end_piece.getTeamColor() != this.currentTeam) {
+            captured_piece = true;
+        }
         this.board.removePiece(move.getStartPosition());
         this.board.addPiece(move.getEndPosition(), piece);
-        this.setTeamTurn(this.currentTeam == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
+        if (!captured_piece) {
+            this.setTeamTurn(this.currentTeam == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
+        }
     }
 
     /**
@@ -139,9 +146,28 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
-        //check for in check
-        //then if in check, check the kings possible moves, if the king cant move then check if the defending pieces can clear all attacking pieces
+        Collection<ChessPiece> allPieces = this.board.getAllPieces();
+        for (ChessPiece piece : allPieces) {
+            if (piece.getTeamColor() != teamColor) {
+                continue;
+            } else {
+                Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
+                for (ChessMove move : moves) {
+                    ChessGame game = new ChessGame();
+                    game.setBoard(this.board.makeCopy());
+                    game.setTeamTurn(teamColor);
+                    try {
+                        game.makeMove(move);
+                        if (!game.isInCheck(teamColor)) {
+                            return false;
+                        }
+                    } catch (InvalidMoveException e) {
+                        continue;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
