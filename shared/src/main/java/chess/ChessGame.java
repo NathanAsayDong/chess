@@ -184,8 +184,16 @@ public class ChessGame {
                 continue;
             } else {
                 Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
-                if (!moves.isEmpty()) {
-                    return false;
+                for (ChessMove move : moves) {
+                    try {
+                        ChessGame game = new ChessGame();
+                        game.setBoard(this.board.makeCopy());
+                        game.setTeamTurn(teamColor);
+                        game.makeMove(move);
+                        return false;
+                    } catch (InvalidMoveException e) {
+                        continue;
+                    }
                 }
             }
         }
