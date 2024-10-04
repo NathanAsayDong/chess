@@ -101,7 +101,8 @@ public class ChessGame {
         game.setBoard(this.board.makeCopy());
         game.getBoard().removePiece(move.getStartPosition());
         game.getBoard().addPiece(move.getEndPosition(), piece);
-        if (game.isInCheck(this.currentTeam)) {
+        game.setTeamTurn(piece.getTeamColor());
+        if (game.isInCheck(piece.getTeamColor())) {
             throw new InvalidMoveException("Move puts own king in check");
         }
         if (end_piece != null && end_piece.getTeamColor() != this.currentTeam) {
@@ -159,9 +160,7 @@ public class ChessGame {
                     game.setTeamTurn(teamColor);
                     try {
                         game.makeMove(move);
-                        if (!game.isInCheck(teamColor)) {
-                            return false;
-                        }
+                        return false;
                     } catch (InvalidMoveException e) {
                         continue;
                     }
@@ -180,20 +179,22 @@ public class ChessGame {
      */
     public boolean isInStalemate(TeamColor teamColor) {
         Collection<ChessPiece> allPieces = this.board.getAllPieces();
+        //returns true if the given team has no legal moves but the king is not in immediate danger
         for (ChessPiece piece : allPieces) {
             if (piece.getTeamColor() != teamColor) {
                 continue;
             } else {
                 Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
                 for (ChessMove move : moves) {
-                    try {
-                        ChessGame game = new ChessGame();
-                        game.setBoard(this.board.makeCopy());
-                        game.setTeamTurn(teamColor);
-                        game.makeMove(move);
+                    ChessGame game = new ChessGame();
+                    game.setBoard(this.board.makeCopy());
+                    game.setTeamTurn(teamColor);
+                    ChessPiece end_piece = game.getBoard().getPiece(move.getEndPosition());
+                    if (end_piece != null && end_piece.getTeamColor() != teamColor) {
                         return false;
-                    } catch (InvalidMoveException e) {
-                        continue;
+                    }
+                    if (end_piece == null) {
+                        return false;
                     }
                 }
             }
