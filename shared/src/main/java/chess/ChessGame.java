@@ -178,6 +178,9 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
+        if (this.isInCheck(teamColor)) {
+            return false;
+        }
         Collection<ChessPiece> allPieces = this.board.getAllPieces();
         //returns true if the given team has no legal moves but the king is not in immediate danger
         for (ChessPiece piece : allPieces) {
@@ -190,11 +193,13 @@ public class ChessGame {
                     game.setBoard(this.board.makeCopy());
                     game.setTeamTurn(teamColor);
                     ChessPiece end_piece = game.getBoard().getPiece(move.getEndPosition());
-                    if (end_piece != null && end_piece.getTeamColor() != teamColor) {
-                        return false;
-                    }
-                    if (end_piece == null) {
-                        return false;
+                    try {
+                        game.makeMove(move);
+                        if (!game.isInCheck(teamColor)) {
+                            return false;
+                        }
+                    } catch (InvalidMoveException e) {
+                        continue;
                     }
                 }
             }
