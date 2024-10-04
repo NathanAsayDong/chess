@@ -143,9 +143,24 @@ public class ChessBoard {
 
     @Override
     public String toString() {
-        return "ChessBoard{" +
-                "first piece" + board[0][0] +
-                "second piece" + board[0][1] +
-                '}';
+        String boardString = "";
+        //for row
+            //for colunm
+                //if piece is null, add space
+                //else add piece
+
+        for(int i = 7; i >= 0; i--) {
+            boardString += "|";
+            for(int j = 0; j < 8; j++) {
+                if(board[i][j] == null) {
+                    boardString += " ";
+                } else {
+                    boardString += board[i][j].toString();
+                }
+                boardString += "|";
+            }
+            boardString += "\n";
+        }
+        return boardString;
     }
 }

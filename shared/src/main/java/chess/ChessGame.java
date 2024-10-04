@@ -112,6 +112,7 @@ public class ChessGame {
         if (!captured_piece) {
             this.setTeamTurn(this.currentTeam == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
         }
+//        System.out.println("board is now \n" + this.board.toString());
     }
 
     /**

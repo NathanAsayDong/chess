@@ -35,10 +35,39 @@ public class ChessPiece {
 
     @Override
     public String toString() {
-        return "ChessPiece{" +
-                "pieceColor=" + pieceColor +
-                ", type=" + type +
-                '}';
+        switch (this.pieceColor) {
+            case WHITE:
+                switch (this.type) {
+                    case KING:
+                        return "♔";
+                    case QUEEN:
+                        return "♕";
+                    case BISHOP:
+                        return "♗";
+                    case KNIGHT:
+                        return "♘";
+                    case ROOK:
+                        return "♖";
+                    case PAWN:
+                        return "♙";
+                }
+            case BLACK:
+                switch (this.type) {
+                    case KING:
+                        return "♚";
+                    case QUEEN:
+                        return "♛";
+                    case BISHOP:
+                        return "♝";
+                    case KNIGHT:
+                        return "♞";
+                    case ROOK:
+                        return "♜";
+                    case PAWN:
+                        return "♟";
+                }
+        }
+        return null;
     }
 
     /**
