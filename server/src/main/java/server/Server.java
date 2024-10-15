@@ -1,8 +1,12 @@
 package server;
 
+import com.google.gson.Gson;
+import model.UserData;
+import service.ChessService;
 import spark.*;
 
 public class Server {
+    ChessService chessService = new ChessService();
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
@@ -32,6 +36,8 @@ public class Server {
     }
 
     public String registerUser(Request req, Response res) {
+        UserData userData = new Gson().fromJson(req.body(), UserData.class);
+        chessService.createUser(userData);
         return "User registered";
     }
 
