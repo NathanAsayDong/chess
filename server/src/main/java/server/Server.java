@@ -1,10 +1,12 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.DataAccessException;
 import dataaccess.DuplicateInfoException;
 import dataaccess.UnauthorizedException;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 import service.ChessService;
 import service.UserService;
@@ -109,7 +111,24 @@ public class Server {
     }
 
     public Object createGame(Request req, Response res) {
-        return "Game created";
+        Object body = new Gson().fromJson(req.body(), Object.class);
+        String gameName = ((Map<String, String>) body).get("name");
+        if (gameName == null) {
+            res.status(400);
+            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        }
+        try {
+            GameData data = new GameData(null, null, null, gameName, new ChessGame());
+            Integer gameID = chessService.createGame(data);
+            res.status(200);
+            return new Gson().toJson(Map.of("gameId", gameID));
+        } catch (UnauthorizedException e) {
+            res.status(401);
+            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
+        } catch (Exception e) {
+            res.status(500);
+            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+        }
     }
 
     public Object joinGame(Request req, Response res) {

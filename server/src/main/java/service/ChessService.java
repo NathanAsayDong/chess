@@ -2,7 +2,10 @@ package service;
 
 import dataaccess.*;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
+
+import java.util.UUID;
 
 public class ChessService {
     UserDao userDao = new UserDao();
@@ -21,6 +24,16 @@ public class ChessService {
         }
     }
 
+
+    public Integer createGame(GameData data) throws Exception {
+        try {
+            return gameDao.createGame(data);
+        } catch (DataAccessException e) {
+            throw new DataAccessException("Error accessing database");
+        } catch (Exception e) {
+            throw new Exception("Error creating game");
+        }
+    }
 
 
 }
