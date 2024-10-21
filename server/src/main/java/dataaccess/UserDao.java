@@ -57,19 +57,6 @@ public class UserDao {
         }
     }
 
-    public AuthData getAuthByUserData(UserData userData) throws DataAccessException {
-        try {
-            for (String key : userAuth.keySet()) {
-                if (userAuth.get(key).username().equals(userData.username())) {
-                    return new AuthData(key, userData.username());
-                }
-            }
-            return new AuthData("", "");
-        } catch (Exception e) {
-            throw new DataAccessException("Error accessing database");
-        }
-    }
-
     public UserData getUserDataByUserData(UserData user) throws DataAccessException {
         try {
             return userData.get(user.username());

@@ -67,6 +67,16 @@ public class UserService {
         }
     }
 
+    public AuthData getAuthByToken(String authToken) throws Exception {
+        try {
+            return userDao.getAuthByToken(authToken);
+        } catch (DataAccessException e) {
+            throw new DataAccessException("Error accessing database");
+        } catch (Exception e) {
+            throw new Exception("Error getting auth by token");
+        }
+    }
+
 
 
     //private helpers

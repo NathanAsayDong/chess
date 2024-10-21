@@ -12,6 +12,7 @@ import service.ChessService;
 import service.UserService;
 import spark.*;
 
+import java.util.List;
 import java.util.Map;
 
 public class Server {
@@ -105,25 +106,40 @@ public class Server {
             res.status(500);
             return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
         }
-
     }
 
     public Object getAllGames(Request req, Response res) {
-        return "All games";
+        String authToken = req.headers("authorization");
+        if (authToken == null) {
+            res.status(400);
+            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        }
+        try {
+            userService.verifyAuth(new AuthData(authToken, ""));
+            List<GameData> games = chessService.getAllGames();
+            res.status(200);
+            return new Gson().toJson(games);
+        } catch (UnauthorizedException e) {
+            res.status(401);
+            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
+        } catch (Exception e) {
+            res.status(500);
+            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+        }
     }
 
     public Object createGame(Request req, Response res) {
-        Object body = new Gson().fromJson(req.body(), Object.class);
-        String gameName = ((Map<String, String>) body).get("name");
+        String gameName = new Gson().fromJson(req.body(), Map.class).get("gameName").toString();
+        String authToken = req.headers("authorization");
         if (gameName == null) {
             res.status(400);
             return new Gson().toJson(Map.of("message", "Error: bad request"));
         }
         try {
-            GameData data = new GameData(null, null, null, gameName, new ChessGame());
-            Integer gameID = chessService.createGame(data);
+            userService.verifyAuth(new AuthData(authToken, ""));
+            Integer gameID = chessService.createGame(gameName);
             res.status(200);
-            return new Gson().toJson(Map.of("gameId", gameID));
+            return new Gson().toJson(Map.of("gameID", gameID));
         } catch (UnauthorizedException e) {
             res.status(401);
             return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
@@ -135,15 +151,23 @@ public class Server {
 
     public Object joinGame(Request req, Response res) {
         String authToken = req.headers("authorization");
-        Object body = new Gson().fromJson(req.body(), Object.class);
-        if (authToken == null || body == null) {
+        Map body = new Gson().fromJson(req.body(), Map.class);
+        Integer gameID = Math.round(Float.parseFloat(body.get("gameID").toString()));
+        ChessGame.TeamColor teamColor = ChessGame.TeamColor.valueOf(body.get("playerColor").toString());
+        if (authToken == null || body.get("playerColor") == null || body.get("gameID") == null) {
             res.status(400);
             return new Gson().toJson(Map.of("message", "Error: bad request"));
         }
-//        try {
-//            chessService.joinGame();
-//        }
-        return "Join game";
+        try {
+            userService.verifyAuth(new AuthData(authToken, ""));
+            AuthData auth = userService.getAuthByToken(authToken);
+            chessService.joinGame(gameID, teamColor, auth.username());
+            res.status(200);
+            return new Gson().toJson(Map.of("message", "Joined game"));
+        } catch (Exception e) {
+            res.status(500);
+            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+        }
     }
 
     public Object clearApplication(Request req, Response res) {
