@@ -4,11 +4,16 @@ import dataaccess.*;
 import model.AuthData;
 import model.UserData;
 
+import java.util.Objects;
+
 public class UserService {
     UserDao userDao = new UserDao();
 
     public AuthData register(UserData user) throws Exception {
         try {
+            if (userNameTaken(user)) {
+                throw new DuplicateInfoException("Username already exists");
+            }
             return userDao.createUser(user);
         } catch (DuplicateInfoException e) {
             throw new DuplicateInfoException("Username or email already exists");
@@ -21,6 +26,10 @@ public class UserService {
 
     public AuthData login(UserData user) throws Exception {
         try {
+            UserData dbUserData = userDao.getUserDataByUserData(user);
+            if (!Objects.equals(dbUserData.password(), user.password())) {
+                throw new UnauthorizedException("Unauthorized");
+            }
             return userDao.login(user);
         } catch (DataAccessException e) {
             throw new DataAccessException("Error accessing database");
@@ -34,6 +43,7 @@ public class UserService {
     public void logout(AuthData auth) throws Exception {
         try {
             verifyAuth(auth);
+            auth = userDao.getAuthByToken(auth.authToken());
             userDao.logout(auth);
         } catch (DataAccessException e) {
             throw new DataAccessException("Error accessing database");
@@ -46,11 +56,25 @@ public class UserService {
 
     public void verifyAuth(AuthData auth) throws Exception {
         try {
-            userDao.getAuthData(auth.authToken());
+            AuthData data = userDao.getAuthByToken(auth.authToken());
+            if (data.username() == null || data.username().isEmpty()) {
+                throw new UnauthorizedException("Unauthorized");
+            }
         } catch (DataAccessException e) {
             throw new DataAccessException("Error accessing database");
         } catch (Exception e) {
             throw new UnauthorizedException("Unauthorized");
+        }
+    }
+
+
+
+    //private helpers
+    private boolean userNameTaken(UserData user) {
+        try {
+            return userDao.getUserDataByUserData(user).username() != null;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

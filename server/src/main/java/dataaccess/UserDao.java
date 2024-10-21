@@ -1,31 +1,80 @@
 package dataaccess;
 import model.AuthData;
 import model.UserData;
-import java.util.UUID;
+
+import java.util.*;
 
 public class UserDao {
+    Map<String, UserData> userAuth = new HashMap<>();
+    Map<String, UserData> userData = new HashMap<>();
 
-    public AuthData createUser(UserData userData) throws DataAccessException {
+    public AuthData createUser(UserData user) throws DataAccessException {
         String authToken =  UUID.randomUUID().toString();
-        return new AuthData(authToken, userData.username());
+        try {
+            userData.put(user.username(), user);
+            userAuth.put(authToken, user);
+            return new AuthData(authToken, user.username());
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
     }
 
-    public AuthData login(UserData userData) throws DataAccessException {
+    public AuthData login(UserData user) throws DataAccessException {
         String authToken = UUID.randomUUID().toString();
-        return new AuthData(authToken, userData.username());
-    }
-
-    public AuthData getAuthData(String authToken) throws DataAccessException {
-        return new AuthData(authToken, "username");
+        try {
+            userAuth.put(authToken, user);
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
+        return new AuthData(authToken, user.username());
     }
 
     public void logout(AuthData authData) throws DataAccessException {
-        return;
+        try {
+            userAuth.remove(authData.authToken());
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
     }
 
     public void clear() throws DataAccessException {
-        //clear logic here
-        return;
+        try {
+            userAuth.clear();
+            userData.clear();
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
     }
 
+    public AuthData getAuthByToken(String token) throws DataAccessException {
+        try {
+            if (!userAuth.containsKey(token)) {
+                return new AuthData("", "");
+            }
+            return new AuthData(token, userAuth.get(token).username());
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
+    }
+
+    public AuthData getAuthByUserData(UserData userData) throws DataAccessException {
+        try {
+            for (String key : userAuth.keySet()) {
+                if (userAuth.get(key).username().equals(userData.username())) {
+                    return new AuthData(key, userData.username());
+                }
+            }
+            return new AuthData("", "");
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
+    }
+
+    public UserData getUserDataByUserData(UserData user) throws DataAccessException {
+        try {
+            return userData.get(user.username());
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
+        }
+    }
 }

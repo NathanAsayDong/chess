@@ -33,8 +33,10 @@ public class Server {
         Spark.put("/game", this::joinGame);
 
         Spark.delete("/db", this::clearApplication);
-        //This line initializes the server and can be removed once you have a functioning endpoint 
         Spark.init();
+
+        //Create an exception handler
+        //Write a positive and a negative JUNIT test case for each public method on your Service classes, except for Clear which only needs a positive test case.
 
         Spark.awaitInitialization();
         return Spark.port();
@@ -132,7 +134,16 @@ public class Server {
     }
 
     public Object joinGame(Request req, Response res) {
-        return "Game joined";
+        String authToken = req.headers("authorization");
+        Object body = new Gson().fromJson(req.body(), Object.class);
+        if (authToken == null || body == null) {
+            res.status(400);
+            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        }
+//        try {
+//            chessService.joinGame();
+//        }
+        return "Join game";
     }
 
     public Object clearApplication(Request req, Response res) {
