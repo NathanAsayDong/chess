@@ -18,7 +18,10 @@ public class ChessServiceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        chessService = new ChessService();
+        GameDao gameDao = new GameDao();
+        UserDao userDao = new UserDao();
+
+        chessService = new ChessService(userDao, gameDao);
         chessService.clear();
     }
 

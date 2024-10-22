@@ -2,12 +2,12 @@ package server;
 
 import chess.ChessGame;
 import com.google.gson.Gson;
-import dataaccess.DataAccessException;
-import dataaccess.DuplicateInfoException;
-import dataaccess.InvalidParametersException;
-import dataaccess.UnauthorizedException;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import dataaccess.*;
 import model.AuthData;
 import model.GameData;
+import model.ListGamesResult;
 import model.UserData;
 import service.ChessService;
 import service.UserService;
@@ -17,8 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Server {
-    ChessService chessService = new ChessService();
-    UserService userService = new UserService();
+    UserDao toplevel_userdao = new UserDao();
+    GameDao toplevel_gamedao = new GameDao();
+
+    ChessService chessService = new ChessService(toplevel_userdao, toplevel_gamedao);
+    UserService userService = new UserService(toplevel_userdao);
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
@@ -50,12 +53,17 @@ public class Server {
     }
 
     public Object registerUser(Request req, Response res) {
+        UserData userData;
         try {
-            UserData userData = new Gson().fromJson(req.body(), UserData.class);
-            if (userData == null || userData.username() == null || userData.password() == null || userData.email() == null) {
-                res.status(400);
-                return new Gson().toJson(Map.of("message", "Error: bad request"));
+            userData = new Gson().fromJson(req.body(), UserData.class);
+            if (userData == null || userData.username() == null || userData.password() == null) {
+                throw new InvalidParametersException("Invalid Request");
             }
+        } catch (Exception e) {
+            return exceptionHandler(new InvalidParametersException("Invalid Request"), req, res);
+        }
+
+        try {
             AuthData authData = userService.register(userData);
             res.status(200);
             return new Gson().toJson(authData);
@@ -65,7 +73,13 @@ public class Server {
     }
 
     public Object loginUser(Request req, Response res) {
-        UserData userData = new Gson().fromJson(req.body(), UserData.class);
+        UserData userData;
+        try {
+            userData = new Gson().fromJson(req.body(), UserData.class);
+        } catch (Exception e) {
+            return exceptionHandler(new InvalidParametersException("Invalid Request"), req, res);
+        }
+
         if (userData == null || userData.username() == null || userData.password() == null) {
             res.status(400);
             return new Gson().toJson(Map.of("message", "Error: bad request"));
@@ -80,12 +94,11 @@ public class Server {
     }
 
     public Object logoutUser(Request req, Response res) {
-        String authToken = req.headers("authorization");
-        if (authToken == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
-        }
         try {
+            String authToken = req.headers("authorization");
+            if (authToken == null) {
+                throw new InvalidParametersException("Invalid Request");
+            }
             userService.logout(new AuthData(authToken, ""));
             res.status(200);
             return new Gson().toJson(Map.of("message", "Logged out"));
@@ -97,19 +110,20 @@ public class Server {
     public Object getAllGames(Request req, Response res) {
         String authToken = req.headers("authorization");
         if (authToken == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
+            throw new InvalidParametersException("Invalid Request");
         }
         try {
             userService.verifyAuth(new AuthData(authToken, ""));
             List<GameData> games = chessService.getAllGames();
             res.status(200);
-            return new Gson().toJson(games);
+            ListGamesResult response = new ListGamesResult(games);
+            return new Gson().toJson(response);
         } catch (Exception e) {
             return exceptionHandler(e, req, res);
         }
     }
 
+    //TODO : ask TA about this endpoint
     public Object createGame(Request req, Response res) {
         String gameName = new Gson().fromJson(req.body(), Map.class).get("gameName").toString();
         String authToken = req.headers("authorization");
@@ -130,12 +144,19 @@ public class Server {
     public Object joinGame(Request req, Response res) {
         String authToken = req.headers("authorization");
         Map body = new Gson().fromJson(req.body(), Map.class);
-        Integer gameID = Math.round(Float.parseFloat(body.get("gameID").toString()));
-        ChessGame.TeamColor teamColor = ChessGame.TeamColor.valueOf(body.get("playerColor").toString());
-        if (authToken == null || body.get("playerColor") == null || body.get("gameID") == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        Integer gameID;
+        ChessGame.TeamColor teamColor;
+        try {
+            gameID = Math.round(Float.parseFloat(body.get("gameID").toString()));
+            teamColor = ChessGame.TeamColor.valueOf(body.get("playerColor").toString());
+            if (authToken == null || body.get("playerColor") == null || body.get("gameID") == null) {
+                res.status(400);
+                return new Gson().toJson(Map.of("message", "Error: bad request"));
+            }
+        } catch (Exception e) {
+            return exceptionHandler(new InvalidParametersException("Invalid Request"), req, res);
         }
+
         try {
             userService.verifyAuth(new AuthData(authToken, ""));
             AuthData auth = userService.getAuthByToken(authToken);

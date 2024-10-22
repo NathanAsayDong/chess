@@ -4,6 +4,7 @@ import dataaccess.*;
 import model.AuthData;
 import model.UserData;
 import org.junit.jupiter.api.*;
+import service.UserService;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,9 +16,10 @@ public class UserServiceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        userService = new UserService();
         userDao = new UserDao();
         userDao.clear();
+        userService = new UserService(userDao);
+
     }
 
     @AfterEach
@@ -106,7 +108,6 @@ public class UserServiceTest {
         try {
             authData = userService.register(user);
             userService.logout(authData);
-            // Verify that the user is logged out by attempting to verify auth
             assertThrows(UnauthorizedException.class, () -> userService.verifyAuth(authData), "User should be logged out");
         } catch (Exception e) {
             fail("Exception should not be thrown in positive logout test: " + e.getMessage());
@@ -140,7 +141,6 @@ public class UserServiceTest {
         try {
             authData = userService.register(user);
             userService.verifyAuth(authData);
-            // If no exception is thrown, the test passes
         } catch (Exception e) {
             fail("Exception should not be thrown in positive verifyAuth test: " + e.getMessage());
         }

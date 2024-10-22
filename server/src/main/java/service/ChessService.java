@@ -10,8 +10,13 @@ import java.util.List;
 import java.util.UUID;
 
 public class ChessService {
-    UserDao userDao = new UserDao();
-    public GameDao gameDao = new GameDao();
+    public UserDao userDao;
+    public GameDao gameDao ;
+
+    public ChessService(UserDao userDao, GameDao gameDao) {
+        this.userDao = userDao;
+        this.gameDao = gameDao;
+    }
 
     public void clear() throws Exception {
         try {
@@ -60,7 +65,7 @@ public class ChessService {
                 throw new Exception("Error: username cannot be empty");
             }
             if ((teamColor == ChessGame.TeamColor.WHITE && game.whiteUsername() != null) || (teamColor == ChessGame.TeamColor.BLACK && game.blackUsername() != null)) {
-                throw new Exception("Error: already taken");
+                throw new DataAccessException("Error: already taken");
             }
             if (teamColor == ChessGame.TeamColor.WHITE) {
                 GameData updatedGame = new GameData(gameID, username, game.blackUsername(), game.gameName(), game.game());

@@ -7,7 +7,11 @@ import model.UserData;
 import java.util.Objects;
 
 public class UserService {
-    UserDao userDao = new UserDao();
+    UserDao userDao;
+
+    public UserService(UserDao userDao) {
+        this.userDao = userDao;
+    }
 
     public AuthData register(UserData user) throws Exception {
         try {

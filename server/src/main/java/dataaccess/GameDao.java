@@ -22,7 +22,7 @@ public class GameDao {
 
     public Integer createGame(String gameName) throws DataAccessException {
         try {
-            Integer gameID = games.size();
+            Integer gameID = games.size() + 1;
             games.put(gameID, new GameData(gameID, null, null, gameName, new ChessGame()));
             return gameID;
         } catch (Exception e) {
