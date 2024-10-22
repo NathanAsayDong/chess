@@ -123,7 +123,6 @@ public class Server {
         }
     }
 
-    //TODO : ask TA about this endpoint
     public Object createGame(Request req, Response res) {
         String gameName = new Gson().fromJson(req.body(), Map.class).get("gameName").toString();
         String authToken = req.headers("authorization");

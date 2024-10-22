@@ -14,70 +14,42 @@ public class UserService {
     }
 
     public AuthData register(UserData user) throws Exception {
-        try {
-            if (userNameTaken(user)) {
-                throw new DuplicateInfoException("Username already exists");
-            }
-            return userDao.createUser(user);
-        } catch (DuplicateInfoException e) {
-            throw new DuplicateInfoException(e.getMessage());
-        } catch (DataAccessException e) {
-            throw new DataAccessException(e.getMessage());
-        } catch (Exception e) {
-            throw new Exception("Error creating user");
+        if (userNameTaken(user)) {
+            throw new DuplicateInfoException("Username already exists");
         }
+        return userDao.createUser(user);
     }
 
     public AuthData login(UserData user) throws Exception {
-        try {
-            UserData dbUserData = userDao.getUserDataByUserData(user);
-            if (!Objects.equals(dbUserData.password(), user.password())) {
-                throw new UnauthorizedException("Unauthorized");
-            }
-            if (!Objects.equals(dbUserData.username(), user.username())) {
-                throw new UnauthorizedException("Unauthorized");
-            }
-            return userDao.login(user);
-        } catch (Exception e) {
+        UserData dbUserData = userDao.getUserDataByUserData(user);
+        if (dbUserData == null || dbUserData.username() == null || dbUserData.username().isEmpty()) {
             throw new UnauthorizedException("Unauthorized");
         }
+        if (!Objects.equals(dbUserData.password(), user.password())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+        if (!Objects.equals(dbUserData.username(), user.username())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+        return userDao.login(user);
     }
 
     public void logout(AuthData auth) throws Exception {
-        try {
-            verifyAuth(auth);
-            auth = userDao.getAuthByToken(auth.authToken());
-            userDao.logout(auth);
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error accessing database");
-        } catch (Exception e) {
-            throw new UnauthorizedException("Unauthorized");
-        }
+        verifyAuth(auth);
+        auth = userDao.getAuthByToken(auth.authToken());
+        userDao.logout(auth);
     }
 
     public void verifyAuth(AuthData auth) throws Exception {
-        try {
-            AuthData data = userDao.getAuthByToken(auth.authToken());
-            if (data.username() == null || data.username().isEmpty()) {
-                throw new UnauthorizedException("Unauthorized");
-            }
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error accessing database");
-        } catch (Exception e) {
+        AuthData data = userDao.getAuthByToken(auth.authToken());
+        if (data.username() == null || data.username().isEmpty()) {
             throw new UnauthorizedException("Unauthorized");
         }
     }
 
     public AuthData getAuthByToken(String authToken) throws Exception {
-        try {
-            return userDao.getAuthByToken(authToken);
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error accessing database");
-        } catch (Exception e) {
-            throw new Exception("Error getting auth by token");
-        }
+        return userDao.getAuthByToken(authToken);
     }
-
 
 
     //private helpers
