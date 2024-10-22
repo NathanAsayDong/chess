@@ -49,7 +49,7 @@ public class UserDao {
     public AuthData getAuthByToken(String token) throws DataAccessException {
         try {
             if (!userAuth.containsKey(token)) {
-                return new AuthData("", "");
+                return new AuthData(null, null);
             }
             return new AuthData(token, userAuth.get(token).username());
         } catch (Exception e) {

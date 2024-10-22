@@ -36,6 +36,9 @@ public class ChessService {
 
     public Integer createGame(String gameName) throws Exception {
         try {
+            if (gameName == null || gameName.isEmpty()) {
+                throw new Exception("Error: game name cannot be empty");
+            }
             return gameDao.createGame(gameName);
         } catch (DataAccessException e) {
             throw new DataAccessException("Error accessing database");
@@ -49,6 +52,12 @@ public class ChessService {
             GameData game = gameDao.getGameById(gameID);
             if (game == null) {
                 throw new Exception("Error: game does not exist");
+            }
+            if (teamColor == null) {
+                throw new Exception("Error: team color cannot be null");
+            }
+            if (username == null || username.isEmpty()) {
+                throw new Exception("Error: username cannot be empty");
             }
             if ((teamColor == ChessGame.TeamColor.WHITE && game.whiteUsername() != null) || (teamColor == ChessGame.TeamColor.BLACK && game.blackUsername() != null)) {
                 throw new Exception("Error: already taken");

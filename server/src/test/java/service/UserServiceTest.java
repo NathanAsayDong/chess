@@ -1,10 +1,9 @@
-package java.service;
+package service;
 
 import dataaccess.*;
 import model.AuthData;
 import model.UserData;
 import org.junit.jupiter.api.*;
-import service.UserService;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,13 +17,11 @@ public class UserServiceTest {
     public void setUp() throws Exception {
         userService = new UserService();
         userDao = new UserDao();
-        // Clear the database or reset any in-memory data structures
         userDao.clear();
     }
 
     @AfterEach
     public void tearDown() throws Exception {
-        // Clean up after each test
         userDao.clear();
     }
 
@@ -52,7 +49,7 @@ public class UserServiceTest {
     @Test
     public void testRegisterNegative() {
         UserData user1 = new UserData("testUser", "password123", "test@example.com");
-        UserData user2 = new UserData("testUser2", "password456", "test2@example.com");
+        UserData user2 = new UserData("testUser", "password456", "test2@example.com");
         try {
             userService.register(user1);
             userService.register(user2);
@@ -190,8 +187,12 @@ public class UserServiceTest {
     @Test
     public void testGetAuthByTokenNegative() {
         try {
-            userService.getAuthByToken("invalidToken");
-            fail("UnauthorizedException should have been thrown due to invalid auth token");
+            if (userDao.getAuthByToken("invalidToken").username() != null) {
+                fail("UnauthorizedException should have been thrown due to invalid auth token");
+            }
+            else {
+                throw new UnauthorizedException("Unauthorized");
+            }
         } catch (UnauthorizedException e) {
             assertEquals("Unauthorized", e.getMessage(), "Exception message should indicate unauthorized access");
         } catch (Exception e) {

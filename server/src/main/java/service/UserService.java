@@ -16,9 +16,9 @@ public class UserService {
             }
             return userDao.createUser(user);
         } catch (DuplicateInfoException e) {
-            throw new DuplicateInfoException("Username or email already exists");
+            throw new DuplicateInfoException(e.getMessage());
         } catch (DataAccessException e) {
-            throw new DataAccessException("Error accessing database");
+            throw new DataAccessException(e.getMessage());
         } catch (Exception e) {
             throw new Exception("Error creating user");
         }
