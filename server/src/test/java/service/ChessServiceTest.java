@@ -15,12 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ChessServiceTest {
 
     private ChessService chessService;
-    private GameDao gameDao;
 
     @BeforeEach
     public void setUp() throws Exception {
         chessService = new ChessService();
-        gameDao = new GameDao();
         chessService.clear();
     }
 
@@ -108,14 +106,14 @@ public class ChessServiceTest {
             chessService.createGame(null);
             fail("Exception should have been thrown due to null game name");
         } catch (Exception e) {
-            assertEquals("Error accessing database", e.getMessage(), "Exception message should indicate database error");
+            assertEquals("Error: game name cannot be empty", e.getMessage(), "Exception message should indicate null game name");
         }
 
         try {
             chessService.createGame("");
             fail("Exception should have been thrown due to empty game name");
         } catch (Exception e) {
-            assertEquals("Error accessing database", e.getMessage(), "Exception message should indicate database error");
+            assertEquals("Error: game name cannot be empty", e.getMessage(), "Exception message should indicate bad game name");
         }
     }
 
@@ -128,11 +126,11 @@ public class ChessServiceTest {
         try {
             Integer gameId = chessService.createGame("Joinable Game");
             chessService.joinGame(gameId, ChessGame.TeamColor.WHITE, "PlayerWhite");
-            GameData gameData = gameDao.getGameById(gameId);
+            GameData gameData = chessService.gameDao.getGameById(gameId);
             assertEquals("PlayerWhite", gameData.whiteUsername(), "White player username should be 'PlayerWhite'");
             assertNull(gameData.blackUsername(), "Black player should be null");
             chessService.joinGame(gameId, ChessGame.TeamColor.BLACK, "PlayerBlack");
-            gameData = gameDao.getGameById(gameId);
+            gameData = chessService.gameDao.getGameById(gameId);
             assertEquals("PlayerBlack", gameData.blackUsername(), "Black player username should be 'PlayerBlack'");
         } catch (Exception e) {
             fail("Exception should not be thrown in positive joinGame test: " + e.getMessage());

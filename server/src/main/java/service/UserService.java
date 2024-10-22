@@ -30,13 +30,12 @@ public class UserService {
             if (!Objects.equals(dbUserData.password(), user.password())) {
                 throw new UnauthorizedException("Unauthorized");
             }
+            if (!Objects.equals(dbUserData.username(), user.username())) {
+                throw new UnauthorizedException("Unauthorized");
+            }
             return userDao.login(user);
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error accessing database");
-        } catch (UnauthorizedException e) {
-            throw new UnauthorizedException("Unauthorized");
         } catch (Exception e) {
-            throw new Exception("Error creating user");
+            throw new UnauthorizedException("Unauthorized");
         }
     }
 
@@ -47,10 +46,8 @@ public class UserService {
             userDao.logout(auth);
         } catch (DataAccessException e) {
             throw new DataAccessException("Error accessing database");
-        } catch (UnauthorizedException e) {
-            throw new UnauthorizedException("Unauthorized");
         } catch (Exception e) {
-            throw new Exception("Error logging out user");
+            throw new UnauthorizedException("Unauthorized");
         }
     }
 

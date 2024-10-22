@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public class ChessService {
     UserDao userDao = new UserDao();
-    GameDao gameDao = new GameDao();
+    public GameDao gameDao = new GameDao();
 
     public void clear() throws Exception {
         try {

@@ -4,6 +4,7 @@ import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.DataAccessException;
 import dataaccess.DuplicateInfoException;
+import dataaccess.InvalidParametersException;
 import dataaccess.UnauthorizedException;
 import model.AuthData;
 import model.GameData;
@@ -49,21 +50,17 @@ public class Server {
     }
 
     public Object registerUser(Request req, Response res) {
-        UserData userData = new Gson().fromJson(req.body(), UserData.class);
-        if (userData == null || userData.username() == null || userData.password() == null || userData.email() == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
-        }
         try {
+            UserData userData = new Gson().fromJson(req.body(), UserData.class);
+            if (userData == null || userData.username() == null || userData.password() == null || userData.email() == null) {
+                res.status(400);
+                return new Gson().toJson(Map.of("message", "Error: bad request"));
+            }
             AuthData authData = userService.register(userData);
             res.status(200);
             return new Gson().toJson(authData);
-        } catch (DuplicateInfoException e) {
-            res.status(403);
-            return new Gson().toJson(Map.of("message", "Error: already taken"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -77,15 +74,8 @@ public class Server {
             AuthData authData = userService.login(userData);
             res.status(200);
             return new Gson().toJson(authData);
-        } catch (DataAccessException e) {
-            res.status(403);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
-        } catch (UnauthorizedException e) {
-            res.status(401);
-            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -99,12 +89,8 @@ public class Server {
             userService.logout(new AuthData(authToken, ""));
             res.status(200);
             return new Gson().toJson(Map.of("message", "Logged out"));
-        } catch (UnauthorizedException e) {
-            res.status(401);
-            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -119,12 +105,8 @@ public class Server {
             List<GameData> games = chessService.getAllGames();
             res.status(200);
             return new Gson().toJson(games);
-        } catch (UnauthorizedException e) {
-            res.status(401);
-            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -140,12 +122,8 @@ public class Server {
             Integer gameID = chessService.createGame(gameName);
             res.status(200);
             return new Gson().toJson(Map.of("gameID", gameID));
-        } catch (UnauthorizedException e) {
-            res.status(401);
-            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -165,8 +143,7 @@ public class Server {
             res.status(200);
             return new Gson().toJson(Map.of("message", "Joined game"));
         } catch (Exception e) {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            return exceptionHandler(e, req, res);
         }
     }
 
@@ -176,6 +153,24 @@ public class Server {
             res.status(200);
             return new Gson().toJson(Map.of("message", "Cleared application"));
         } catch (Exception e) {
+            return exceptionHandler(e, req, res);
+        }
+    }
+
+    public Object exceptionHandler(Exception e, Request req, Response res) {
+        if (e instanceof DuplicateInfoException) {
+            res.status(403);
+            return new Gson().toJson(Map.of("message", "Error: already taken"));
+        } else if (e instanceof DataAccessException) {
+            res.status(403);
+            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+        } else if (e instanceof UnauthorizedException) {
+            res.status(401);
+            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
+        } else if (e instanceof InvalidParametersException) {
+            res.status(400);
+            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        } else {
             res.status(500);
             return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
         }
