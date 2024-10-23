@@ -127,16 +127,23 @@ public class ChessGame {
         for (ChessPiece piece : allPieces) {
             if (piece.getTeamColor() != teamColor) {
                 Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
-                for (ChessMove move : moves) {
-                    ChessPiece endPiece = this.board.getPiece(move.getEndPosition());
-                    if (endPiece == null) {
-                        continue;
-                    }
-                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING
-                            && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
-                        return true;
-                    }
+                if (movesHitsKing(moves, teamColor, this.board)) {
+                    return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    private boolean movesHitsKing(Collection<ChessMove> moves, TeamColor teamColor, ChessBoard board) {
+        for (ChessMove move : moves) {
+            ChessPiece endPiece = this.board.getPiece(move.getEndPosition());
+            if (endPiece == null) {
+                continue;
+            }
+            if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING
+                    && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
+                return true;
             }
         }
         return false;
