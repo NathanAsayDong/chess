@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Server {
-    static UserDao toplevel_userdao = new UserDao();
-    static GameDao toplevel_gamedao = new GameDao();
+    static UserDao topLevelUserDao = new UserDao();
+    static GameDao topLevelGameDao = new GameDao();
 
-    ChessService chessService = new ChessService(toplevel_userdao, toplevel_gamedao);
-    UserService userService = new UserService(toplevel_userdao);
+    ChessService chessService = new ChessService(topLevelUserDao, topLevelGameDao);
+    UserService userService = new UserService(topLevelUserDao);
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);

@@ -158,7 +158,10 @@ public class ChessPiece {
     private Collection<ChessMove> handlePawnPromotion(ChessBoard board, ChessPosition position, ChessPosition myPosition) {
         Collection<ChessMove> moves = new ArrayList<>();
         //if its white and top row
-        if ((this.pieceColor == ChessGame.TeamColor.WHITE && position.getRow() == 8) || (this.pieceColor == ChessGame.TeamColor.BLACK && position.getRow() == 1)) {
+        if ((this.pieceColor == ChessGame.TeamColor.WHITE
+                && position.getRow() == 8)
+                || (this.pieceColor == ChessGame.TeamColor.BLACK
+                && position.getRow() == 1)) {
             moves.add(new ChessMove(myPosition, position, PieceType.BISHOP));
             moves.add(new ChessMove(myPosition, position, PieceType.KNIGHT));
             moves.add(new ChessMove(myPosition, position, PieceType.ROOK));
