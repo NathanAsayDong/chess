@@ -196,23 +196,27 @@ public class ChessGame {
                 continue;
             } else {
                 Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
-                for (ChessMove move : moves) {
-                    ChessGame game = new ChessGame();
-                    game.setBoard(this.board.makeCopy());
-                    game.setTeamTurn(teamColor);
-                    ChessPiece endPiece = game.getBoard().getPiece(move.getEndPosition());
-                    try {
-                        game.makeMove(move);
-                        if (!game.isInCheck(teamColor)) {
-                            return false;
-                        }
-                    } catch (InvalidMoveException e) {
-                        continue;
-                    }
+                if (hasValidMove(moves, piece, this.board)) {
+                    return false;
                 }
             }
         }
         return true;
+    }
+
+    private boolean hasValidMove(Collection<ChessMove> moves, ChessPiece piece, ChessBoard board) {
+        for (ChessMove move : moves) {
+            ChessGame game = new ChessGame();
+            game.setBoard(board.makeCopy());
+            game.setTeamTurn(piece.getTeamColor());
+            try {
+                game.makeMove(move);
+                return true;
+            } catch (InvalidMoveException e) {
+                continue;
+            }
+        }
+        return false;
     }
 
     /**
