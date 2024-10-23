@@ -22,8 +22,8 @@ public class ChessPiece {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true; // this is where the memory address comparison happens
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
         ChessPiece that = (ChessPiece) o; // this is type cast
         return pieceColor == that.pieceColor && type == that.type;
     }
@@ -158,13 +158,7 @@ public class ChessPiece {
     private Collection<ChessMove> handlePawnPromotion(ChessBoard board, ChessPosition position, ChessPosition myPosition) {
         Collection<ChessMove> moves = new ArrayList<>();
         //if its white and top row
-        if (this.pieceColor == ChessGame.TeamColor.WHITE && position.getRow() == 8) {
-            moves.add(new ChessMove(myPosition, position, PieceType.BISHOP));
-            moves.add(new ChessMove(myPosition, position, PieceType.KNIGHT));
-            moves.add(new ChessMove(myPosition, position, PieceType.ROOK));
-            moves.add(new ChessMove(myPosition, position, PieceType.QUEEN));
-        }
-        else if (this.pieceColor == ChessGame.TeamColor.BLACK && position.getRow() == 1) {
+        if ((this.pieceColor == ChessGame.TeamColor.WHITE && position.getRow() == 8) || (this.pieceColor == ChessGame.TeamColor.BLACK && position.getRow() == 1)) {
             moves.add(new ChessMove(myPosition, position, PieceType.BISHOP));
             moves.add(new ChessMove(myPosition, position, PieceType.KNIGHT));
             moves.add(new ChessMove(myPosition, position, PieceType.ROOK));

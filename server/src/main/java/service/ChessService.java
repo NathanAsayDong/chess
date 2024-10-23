@@ -45,7 +45,8 @@ public class ChessService {
         if (username == null || username.isEmpty()) {
             throw new Exception("Error: username cannot be empty");
         }
-        if ((teamColor == ChessGame.TeamColor.WHITE && game.whiteUsername() != null) || (teamColor == ChessGame.TeamColor.BLACK && game.blackUsername() != null)) {
+        if ((teamColor == ChessGame.TeamColor.WHITE && game.whiteUsername() != null)
+                || (teamColor == ChessGame.TeamColor.BLACK && game.blackUsername() != null)) {
             throw new DuplicateInfoException("Error: already taken");
         }
         if (teamColor == ChessGame.TeamColor.WHITE) {

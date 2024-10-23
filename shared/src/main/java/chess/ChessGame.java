@@ -132,7 +132,8 @@ public class ChessGame {
                     if (endPiece == null) {
                         continue;
                     }
-                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
+                    if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING
+                            && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
                         return true;
                     }
                 }
