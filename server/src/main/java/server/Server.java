@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class Server {
-    UserDao toplevel_userdao = new UserDao();
-    GameDao toplevel_gamedao = new GameDao();
+    static UserDao toplevel_userdao = new UserDao();
+    static GameDao toplevel_gamedao = new GameDao();
 
     ChessService chessService = new ChessService(toplevel_userdao, toplevel_gamedao);
     UserService userService = new UserService(toplevel_userdao);
@@ -28,7 +28,6 @@ public class Server {
 
         Spark.staticFiles.location("web");
 
-        // Register your endpoints and handle exceptions here.
         Spark.post("/user", this::registerUser);
         Spark.post("/session", this::loginUser);
         Spark.delete("/session", this::logoutUser);
@@ -39,9 +38,6 @@ public class Server {
 
         Spark.delete("/db", this::clearApplication);
         Spark.init();
-
-        //Create an exception handler
-        //Write a positive and a negative JUNIT test case for each public method on your Service classes, except for Clear which only needs a positive test case.
 
         Spark.awaitInitialization();
         return Spark.port();
@@ -76,14 +72,14 @@ public class Server {
         UserData userData;
         try {
             userData = new Gson().fromJson(req.body(), UserData.class);
+            if (userData == null || userData.username() == null || userData.password() == null) {
+                res.status(400);
+                return new Gson().toJson(Map.of("message", "Error: bad request"));
+            }
         } catch (Exception e) {
             return exceptionHandler(new InvalidParametersException("Invalid Request"), req, res);
         }
 
-        if (userData == null || userData.username() == null || userData.password() == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
-        }
         try {
             AuthData authData = userService.login(userData);
             res.status(200);
@@ -108,11 +104,11 @@ public class Server {
     }
 
     public Object getAllGames(Request req, Response res) {
-        String authToken = req.headers("authorization");
-        if (authToken == null) {
-            throw new InvalidParametersException("Invalid Request");
-        }
         try {
+            String authToken = req.headers("authorization");
+            if (authToken == null) {
+                throw new InvalidParametersException("Invalid Request");
+            }
             userService.verifyAuth(new AuthData(authToken, ""));
             List<GameData> games = chessService.getAllGames();
             res.status(200);
@@ -124,11 +120,16 @@ public class Server {
     }
 
     public Object createGame(Request req, Response res) {
-        String gameName = new Gson().fromJson(req.body(), Map.class).get("gameName").toString();
-        String authToken = req.headers("authorization");
-        if (gameName == null) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
+        String gameName;
+        String authToken;
+        try {
+            gameName = new Gson().fromJson(req.body(), Map.class).get("gameName").toString();
+            authToken = req.headers("authorization");
+            if (gameName == null) {
+                throw new InvalidParametersException("Invalid Request");
+            }
+        } catch (Exception e) {
+            return exceptionHandler(new InvalidParametersException("Invalid Request"), req, res);
         }
         try {
             userService.verifyAuth(new AuthData(authToken, ""));
@@ -178,21 +179,27 @@ public class Server {
     }
 
     public Object exceptionHandler(Exception e, Request req, Response res) {
-        if (e instanceof DuplicateInfoException) {
-            res.status(403);
-            return new Gson().toJson(Map.of("message", "Error: already taken"));
-        } else if (e instanceof DataAccessException) {
-            res.status(403);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
-        } else if (e instanceof UnauthorizedException) {
-            res.status(401);
-            return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
-        } else if (e instanceof InvalidParametersException) {
-            res.status(400);
-            return new Gson().toJson(Map.of("message", "Error: bad request"));
-        } else {
-            res.status(500);
-            return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+        switch (e) {
+            case DuplicateInfoException duplicateInfoException -> {
+                res.status(403);
+                return new Gson().toJson(Map.of("message", "Error: already taken"));
+            }
+            case DataAccessException dataAccessException -> {
+                res.status(403);
+                return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            }
+            case UnauthorizedException unauthorizedException -> {
+                res.status(401);
+                return new Gson().toJson(Map.of("message", "Error: Unauthorized"));
+            }
+            case InvalidParametersException invalidParametersException -> {
+                res.status(400);
+                return new Gson().toJson(Map.of("message", "Error: bad request"));
+            }
+            case null, default -> {
+                res.status(500);
+                return new Gson().toJson(Map.of("message", "Error: " + e.getMessage()));
+            }
         }
     }
 }

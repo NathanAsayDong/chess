@@ -78,9 +78,9 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        boolean captured_piece = false;
+        boolean caputuredPiece = false;
         ChessPiece piece = this.board.getPiece(move.getStartPosition());
-        ChessPiece end_piece = this.board.getPiece(move.getEndPosition());
+        ChessPiece endPiece = this.board.getPiece(move.getEndPosition());
         if (piece == null) {
             throw new InvalidMoveException("No piece at start position");
         }
@@ -88,7 +88,7 @@ public class ChessGame {
         if (piece.getTeamColor() != this.currentTeam) {
             throw new InvalidMoveException("Not this team's turn");
         }
-        if (end_piece != null && end_piece.getTeamColor() == this.currentTeam) {
+        if (endPiece != null && endPiece.getTeamColor() == this.currentTeam) {
             throw new InvalidMoveException("Cannot take own piece");
         }
         if (move.getPromotionPiece() != null) {
@@ -105,12 +105,12 @@ public class ChessGame {
         if (game.isInCheck(piece.getTeamColor())) {
             throw new InvalidMoveException("Move puts own king in check");
         }
-        if (end_piece != null && end_piece.getTeamColor() != this.currentTeam) {
-            captured_piece = true;
+        if (endPiece != null && endPiece.getTeamColor() != this.currentTeam) {
+            caputuredPiece = true;
         }
         this.board.removePiece(move.getStartPosition());
         this.board.addPiece(move.getEndPosition(), piece);
-        if (!captured_piece) {
+        if (!caputuredPiece) {
             this.setTeamTurn(this.currentTeam == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
         }
 //        System.out.println("board is now \n" + this.board.toString());
@@ -128,8 +128,8 @@ public class ChessGame {
             if (piece.getTeamColor() != teamColor) {
                 Collection<ChessMove> moves = piece.pieceMoves(this.board, this.board.getPiecePosition(piece));
                 for (ChessMove move : moves) {
-                    ChessPiece end_piece = this.board.getPiece(move.getEndPosition());
-                    if (end_piece == null) {
+                    ChessPiece endPiece = this.board.getPiece(move.getEndPosition());
+                    if (endPiece == null) {
                         continue;
                     }
                     if (this.board.getPiece(move.getEndPosition()).getPieceType() == ChessPiece.PieceType.KING && this.board.getPiece(move.getEndPosition()).getTeamColor() == teamColor) {
@@ -192,7 +192,7 @@ public class ChessGame {
                     ChessGame game = new ChessGame();
                     game.setBoard(this.board.makeCopy());
                     game.setTeamTurn(teamColor);
-                    ChessPiece end_piece = game.getBoard().getPiece(move.getEndPosition());
+                    ChessPiece endPiece = game.getBoard().getPiece(move.getEndPosition());
                     try {
                         game.makeMove(move);
                         if (!game.isInCheck(teamColor)) {
