@@ -51,7 +51,12 @@ public class SqlUserDao implements UserDao {
 
     @Override
     public void logout(AuthData authData) throws DataAccessException {
-
+        try {
+            String statement = String.format("DELETE FROM %s WHERE authToken = ?", userAuthTable);
+            executeUpdate(statement, authData.authToken());
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
