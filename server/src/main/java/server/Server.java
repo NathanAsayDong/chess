@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Server {
-    static UserDao topLevelUserDao = new UserDao();
+    static UserDao topLevelUserDao = new MemoryUserDao();
     static GameDao topLevelGameDao = new GameDao();
 
     ChessService chessService = new ChessService(topLevelUserDao, topLevelGameDao);

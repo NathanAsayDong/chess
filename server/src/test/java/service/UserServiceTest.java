@@ -16,7 +16,7 @@ public class UserServiceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        userDao = new UserDao();
+        userDao = new MemoryUserDao();
         userDao.clear();
         userService = new UserService(userDao);
 
