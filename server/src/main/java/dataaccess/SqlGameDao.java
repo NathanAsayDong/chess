@@ -13,10 +13,6 @@ import static java.sql.Types.NULL;
 
 public class SqlGameDao implements GameDao {
     private static final String table = "GameData";
-    private static final String gameId = "GameData.gameId";
-    private static final String whiteUsername = "GameData.whiteUsername";
-    private static final String blackUsername = "GameData.blackUsername";
-    private static final String gameName = "GameData.gameName";
 
     public SqlGameDao() throws DataAccessException {
         try {
