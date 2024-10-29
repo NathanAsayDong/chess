@@ -6,6 +6,7 @@ import model.AuthData;
 import model.UserData;
 
 import java.sql.SQLException;
+import java.util.UUID;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.sql.Types.NULL;
@@ -14,14 +15,38 @@ public class SqlUserDao implements UserDao {
     private static final String userDataTable = "UserData";
     private static final String userAuthTable = "UserAuth";
 
+    public SqlUserDao() throws DataAccessException {
+        try {
+            configureDatabase();
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
+    }
+
     @Override
     public AuthData createUser(UserData user) throws DataAccessException {
-        return null;
+        try {
+            String authToken = UUID.randomUUID().toString();
+            String user_data_statement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", userDataTable);
+            executeUpdate(user_data_statement, user.username(), user.email(), user.password());
+            String user_auth_statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", userAuthTable);
+            executeUpdate(user_auth_statement, authToken, user.username());
+            return new AuthData(authToken, user.username());
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
     public AuthData login(UserData user) throws DataAccessException {
-        return null;
+        try {
+            String authToken = UUID.randomUUID().toString();
+            String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", userAuthTable);
+            executeUpdate(statement, authToken, user.username());
+            return new AuthData(authToken, user.username());
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
