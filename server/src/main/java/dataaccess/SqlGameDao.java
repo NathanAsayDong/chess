@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import model.GameData;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
@@ -27,7 +28,28 @@ public class SqlGameDao implements GameDao {
 
     @Override
     public List<GameData> getAllGames() throws DataAccessException {
-        return List.of();
+        try {
+            String statment = String.format("SELECT * FROM %s", table);
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(statment)) {
+                    try (var rs = ps.executeQuery()) {
+                        var games = new ArrayList<GameData>();
+                        while (rs.next()) {
+                            games.add(new GameData(
+                                    rs.getInt("gameId"),
+                                    rs.getString("whiteUsername"),
+                                    rs.getString("blackUsername"),
+                                    rs.getString("gameName"),
+                                    new Gson().fromJson(rs.getString("game"), ChessGame.class)
+                            ));
+                        }
+                        return games;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
@@ -42,16 +64,47 @@ public class SqlGameDao implements GameDao {
 
     @Override
     public void updateGame(GameData game) throws DataAccessException {
-
+        try {
+            executeUpdate("UPDATE GameData SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameId = ?",
+                    game.whiteUsername(), game.blackUsername(), game.gameName(), game.game(), game.gameID());
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
-    public GameData getGameById(Integer gameId) {
+    public GameData getGameById(Integer gameId) throws DataAccessException {
+        try {
+            String statment = String.format("SELECT * FROM %s WHERE %s = ?", table, gameId);
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(statment)) {
+                    ps.setInt(1, gameId);
+                    try (var rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            return new GameData(
+                                    rs.getInt("gameId"),
+                                    rs.getString("whiteUsername"),
+                                    rs.getString("blackUsername"),
+                                    rs.getString("gameName"),
+                                    new Gson().fromJson(rs.getString("game"), ChessGame.class)
+                            );
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException(e.getMessage());
+        }
         return null;
     }
 
     @Override
-    public void clear() {
+    public void clear() throws DataAccessException {
+        try {
+            executeUpdate("DELETE FROM GameData");
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
 
     }
 
