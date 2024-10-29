@@ -1,10 +1,7 @@
 package service;
 
 import chess.ChessGame;
-import dataaccess.DataAccessException;
-import dataaccess.GameDao;
-import dataaccess.MemoryUserDao;
-import dataaccess.UserDao;
+import dataaccess.*;
 import model.GameData;
 import org.junit.jupiter.api.*;
 import service.ChessService;
@@ -19,7 +16,7 @@ public class ChessServiceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        GameDao gameDao = new GameDao();
+        GameDao gameDao = new MemoryGameDao();
         UserDao userDao = new MemoryUserDao();
 
         chessService = new ChessService(userDao, gameDao);
