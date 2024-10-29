@@ -61,16 +61,52 @@ public class SqlUserDao implements UserDao {
 
     @Override
     public AuthData getAuthByToken(String token) throws DataAccessException {
-        return null;
+        try {
+            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", userAuthTable);
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(statement)) {
+                    ps.setString(1, token);
+                    try (var rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            return new AuthData(rs.getString("authToken"), rs.getString("username"));
+                        }
+                        return new AuthData(null, null);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
     public UserData getUserDataByUserData(UserData user) throws DataAccessException {
-        return null;
+        try {
+            String statement = String.format("SELECT * FROM %s WHERE username = ?", userDataTable);
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(statement)) {
+                    ps.setString(1, user.username());
+                    try (var rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            return new UserData(rs.getString("username"), rs.getString("email"), rs.getString("password"));
+                        }
+                        return null;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     @Override
     public void clear() throws DataAccessException {
+        try {
+            executeUpdate("DELETE FROM UserData");
+            executeUpdate("DELETE FROM UserAuth");
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
     }
 
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
