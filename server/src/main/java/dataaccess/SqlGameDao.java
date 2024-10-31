@@ -52,7 +52,7 @@ public class SqlGameDao implements GameDao {
     public Integer createGame(String gameName) throws DataAccessException {
         try {
             ChessGame game = new ChessGame();
-            return executeUpdate("INSERT INTO GameData (gameName, game) VALUES (?, ?)", gameName, game.toString());
+            return executeUpdate("INSERT INTO GameData (gameName, game) VALUES (?, ?)", gameName, new Gson().toJson(game));
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
@@ -71,7 +71,7 @@ public class SqlGameDao implements GameDao {
     @Override
     public GameData getGameById(Integer gameId) throws DataAccessException {
         try {
-            String statment = String.format("SELECT * FROM %s WHERE %s = ?", table, gameId);
+            String statment = String.format("SELECT * FROM %s WHERE gameId = ?", table);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statment)) {
                     ps.setInt(1, gameId);
@@ -142,15 +142,15 @@ public class SqlGameDao implements GameDao {
     }
 
     private final String[] createGameTableStatment = {
-            """
+        """
         CREATE TABLE IF NOT EXISTS GameData (
           `gameId` int NOT NULL AUTO_INCREMENT,
           `whiteUsername` varchar(256),
           `blackUsername` varchar(256),
           `gameName` varchar(256) NOT NULL,
-          'game' varchar(256) NOT NULL,
+          `game` TEXT NOT NULL,
           PRIMARY KEY (`gameId`),
-          INDEX(gameName),
+          INDEX(gameName)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
         """
     };

@@ -17,8 +17,25 @@ import java.util.List;
 import java.util.Map;
 
 public class Server {
-    static UserDao topLevelUserDao = new MemoryUserDao();
-    static GameDao topLevelGameDao = new MemoryGameDao();
+    static UserDao topLevelUserDao;
+
+    static {
+        try {
+            topLevelUserDao = new SqlUserDao();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static GameDao topLevelGameDao;
+
+    static {
+        try {
+            topLevelGameDao = new SqlGameDao();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     ChessService chessService = new ChessService(topLevelUserDao, topLevelGameDao);
     UserService userService = new UserService(topLevelUserDao);

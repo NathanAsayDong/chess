@@ -88,7 +88,7 @@ public class SqlUserDao implements UserDao {
                     ps.setString(1, user.username());
                     try (var rs = ps.executeQuery()) {
                         if (rs.next()) {
-                            return new UserData(rs.getString("username"), rs.getString("email"), rs.getString("password"));
+                            return new UserData(rs.getString("username"), rs.getString("password"), rs.getString("email"));
                         }
                         return null;
                     }
