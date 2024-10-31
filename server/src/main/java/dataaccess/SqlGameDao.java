@@ -52,6 +52,9 @@ public class SqlGameDao implements GameDao {
     public Integer createGame(String gameName) throws DataAccessException {
         try {
             ChessGame game = new ChessGame();
+            if (gameName == null || gameName.isEmpty()) {
+                throw new DataAccessException("Error: game name cannot be null");
+            }
             return executeUpdate("INSERT INTO GameData (gameName, game) VALUES (?, ?)", gameName, new Gson().toJson(game));
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());

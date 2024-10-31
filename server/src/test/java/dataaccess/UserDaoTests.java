@@ -2,6 +2,7 @@ package dataaccess;
 
 import model.AuthData;
 import model.UserData;
+import org.eclipse.jetty.server.Authentication;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -117,11 +118,14 @@ public class UserDaoTests {
     @Test
     public void testLogoutNegative() {
         AuthData invalidAuth = new AuthData("invalidToken", "testUser");
+        UserData testValidUser = new UserData("testUser", "password123", "test@test.com");
         try {
+            AuthData auth = userDao.createUser(testValidUser);
             userDao.logout(invalidAuth);
-            fail("DataAccessException should have been thrown due to invalid auth token");
+            AuthData auth2 = userDao.getAuthByToken(auth.authToken());
+            assertEquals(auth.authToken(), auth2.authToken(), "AuthTokens should match for invalid logout");
         } catch (DataAccessException e) {
-            assertEquals("Invalid token", e.getMessage(), "Exception message should indicate invalid auth token");
+            fail("Exception should not be thrown in negative logout test: " + e.getMessage());
         }
     }
 
