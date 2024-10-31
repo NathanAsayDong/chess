@@ -4,6 +4,7 @@ import chess.ChessGame;
 import com.google.gson.Gson;
 import model.AuthData;
 import model.UserData;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.SQLException;
 import java.util.UUID;
@@ -27,8 +28,9 @@ public class SqlUserDao implements UserDao {
     public AuthData createUser(UserData user) throws DataAccessException {
         try {
             String authToken = UUID.randomUUID().toString();
+            String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
             String user_data_statement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", userDataTable);
-            executeUpdate(user_data_statement, user.username(), user.email(), user.password());
+            executeUpdate(user_data_statement, user.username(), user.email(), hashedPassword);
             String user_auth_statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", userAuthTable);
             executeUpdate(user_auth_statement, authToken, user.username());
             return new AuthData(authToken, user.username());
