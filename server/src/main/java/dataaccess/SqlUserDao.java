@@ -55,7 +55,10 @@ public class SqlUserDao implements UserDao {
     public void logout(AuthData authData) throws DataAccessException {
         try {
             String statement = String.format("DELETE FROM %s WHERE authToken = ?", userAuthTable);
-            executeUpdate(statement, authData.authToken());
+            int rowsAffected = executeUpdate(statement, authData.authToken());
+            if (rowsAffected == 0) {
+                throw new DataAccessException("Invalid token");
+            }
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
@@ -156,7 +159,7 @@ public class SqlUserDao implements UserDao {
         """
         CREATE TABLE IF NOT EXISTS UserData (
           `id` int NOT NULL AUTO_INCREMENT,
-          `username` varchar(256) NOT NULL,
+          `username` varchar(256) NOT NULL UNIQUE,
           `email` varchar(256) NOT NULL,
           `password` varchar(256) NOT NULL,
           PRIMARY KEY (`id`),
