@@ -24,25 +24,22 @@ public class SqlGameDao implements GameDao {
 
     @Override
     public List<GameData> getAllGames() throws DataAccessException {
-        try {
-            String statment = String.format("SELECT * FROM %s", TABLE);
-            try (var conn = DatabaseManager.getConnection()) {
-                try (var ps = conn.prepareStatement(statment)) {
-                    try (var rs = ps.executeQuery()) {
-                        var games = new ArrayList<GameData>();
-                        while (rs.next()) {
-                            games.add(new GameData(
-                                    rs.getInt("gameId"),
-                                    rs.getString("whiteUsername"),
-                                    rs.getString("blackUsername"),
-                                    rs.getString("gameName"),
-                                    new Gson().fromJson(rs.getString("game"), ChessGame.class)
-                            ));
-                        }
-                        return games;
-                    }
-                }
+        String statement = String.format("SELECT * FROM %s", TABLE);
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement);
+             var rs = ps.executeQuery()) {
+            var games = new ArrayList<GameData>();
+            Gson gson = new Gson();
+            while (rs.next()) {
+                games.add(new GameData(
+                        rs.getInt("gameId"),
+                        rs.getString("whiteUsername"),
+                        rs.getString("blackUsername"),
+                        rs.getString("gameName"),
+                        gson.fromJson(rs.getString("game"), ChessGame.class)
+                ));
             }
+            return games;
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
@@ -73,22 +70,20 @@ public class SqlGameDao implements GameDao {
 
     @Override
     public GameData getGameById(Integer gameId) throws DataAccessException {
-        try {
-            String statment = String.format("SELECT * FROM %s WHERE gameId = ?", TABLE);
-            try (var conn = DatabaseManager.getConnection()) {
-                try (var ps = conn.prepareStatement(statment)) {
-                    ps.setInt(1, gameId);
-                    try (var rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            return new GameData(
-                                    rs.getInt("gameId"),
-                                    rs.getString("whiteUsername"),
-                                    rs.getString("blackUsername"),
-                                    rs.getString("gameName"),
-                                    new Gson().fromJson(rs.getString("game"), ChessGame.class)
-                            );
-                        }
-                    }
+        String statement = String.format("SELECT * FROM %s WHERE gameId = ?", TABLE);
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+            ps.setInt(1, gameId);
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Gson gson = new Gson();
+                    return new GameData(
+                            rs.getInt("gameId"),
+                            rs.getString("whiteUsername"),
+                            rs.getString("blackUsername"),
+                            rs.getString("gameName"),
+                            gson.fromJson(rs.getString("game"), ChessGame.class)
+                    );
                 }
             }
         } catch (SQLException e) {
@@ -96,6 +91,7 @@ public class SqlGameDao implements GameDao {
         }
         return null;
     }
+
 
     @Override
     public void clear() throws DataAccessException {

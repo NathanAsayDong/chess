@@ -56,7 +56,9 @@ public class UserDaoTests {
             userDao.createUser(user2);
             fail("DataAccessException should have been thrown due to duplicate username");
         } catch (DataAccessException e) {
-            assertEquals("unable to update database: INSERT INTO UserData (username, email, password) VALUES (?, ?, ?), Duplicate entry 'testUser' for key 'userdata.username'", e.getMessage(), "Exception message should indicate duplicate username");
+            assertEquals("unable to update database: INSERT INTO UserData (username, email, password) VALUES (?, ?, ?), " +
+                    "Duplicate entry 'testUser' for key 'userdata.username'",
+                    e.getMessage(), "Exception message should indicate duplicate username");
         }
     }
 

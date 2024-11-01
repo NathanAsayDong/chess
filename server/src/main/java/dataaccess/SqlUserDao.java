@@ -61,19 +61,15 @@ public class SqlUserDao implements UserDao {
 
     @Override
     public AuthData getAuthByToken(String token) throws DataAccessException {
-        try {
-            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", USERAUTHTABLE);
-            try (var conn = DatabaseManager.getConnection()) {
-                try (var ps = conn.prepareStatement(statement)) {
-                    ps.setString(1, token);
-                    try (var rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            return new AuthData(rs.getString("authToken"), rs.getString("username"));
-                        }
-                        else {
-                            return new AuthData(null, null);
-                        }
-                    }
+        String statement = String.format("SELECT * FROM %s WHERE authToken = ?", USERAUTHTABLE);
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+            ps.setString(1, token);
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new AuthData(rs.getString("authToken"), rs.getString("username"));
+                } else {
+                    return new AuthData(null, null);
                 }
             }
         } catch (Exception e) {
@@ -81,25 +77,28 @@ public class SqlUserDao implements UserDao {
         }
     }
 
+
     @Override
     public UserData getUserDataByUserData(UserData user) throws DataAccessException {
-        try {
-            String statement = String.format("SELECT * FROM %s WHERE username = ?", USERDATATABLE);
-            try (var conn = DatabaseManager.getConnection()) {
-                try (var ps = conn.prepareStatement(statement)) {
-                    ps.setString(1, user.username());
-                    try (var rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            return new UserData(rs.getString("username"), rs.getString("password"), rs.getString("email"));
-                        }
-                        return null;
-                    }
+        String statement = String.format("SELECT * FROM %s WHERE username = ?", USERDATATABLE);
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+            ps.setString(1, user.username());
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new UserData(
+                            rs.getString("username"),
+                            rs.getString("password"),
+                            rs.getString("email")
+                    );
                 }
             }
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
+        return null;
     }
+
 
     @Override
     public void clear() throws DataAccessException {
