@@ -1,7 +1,5 @@
 package dataaccess;
 
-import chess.ChessGame;
-import com.google.gson.Gson;
 import model.AuthData;
 import model.UserData;
 import org.mindrot.jbcrypt.BCrypt;
@@ -13,8 +11,8 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.sql.Types.NULL;
 
 public class SqlUserDao implements UserDao {
-    private static final String UserDataTable = "UserData";
-    private static final String UserAuthTable = "UserAuth";
+    private static final String USERDATATABLE = "UserData";
+    private static final String USERAUTHTABLE = "UserAuth";
 
     public SqlUserDao() throws DataAccessException {
         try {
@@ -29,9 +27,9 @@ public class SqlUserDao implements UserDao {
         try {
             String authToken = UUID.randomUUID().toString();
             String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
-            String userDataStatement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", UserDataTable);
+            String userDataStatement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", USERDATATABLE);
             executeUpdate(userDataStatement, user.username(), user.email(), hashedPassword);
-            String userAuthStatement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", UserAuthTable);
+            String userAuthStatement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", USERAUTHTABLE);
             executeUpdate(userAuthStatement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
@@ -43,7 +41,7 @@ public class SqlUserDao implements UserDao {
     public AuthData login(UserData user) throws DataAccessException {
         try {
             String authToken = UUID.randomUUID().toString();
-            String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", UserAuthTable);
+            String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", USERAUTHTABLE);
             executeUpdate(statement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
@@ -54,7 +52,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public void logout(AuthData authData) throws DataAccessException {
         try {
-            String statement = String.format("DELETE FROM %s WHERE authToken = ?", UserAuthTable);
+            String statement = String.format("DELETE FROM %s WHERE authToken = ?", USERAUTHTABLE);
             executeUpdate(statement, authData.authToken());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
@@ -64,7 +62,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public AuthData getAuthByToken(String token) throws DataAccessException {
         try {
-            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", UserAuthTable);
+            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", USERAUTHTABLE);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statement)) {
                     ps.setString(1, token);
@@ -86,7 +84,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public UserData getUserDataByUserData(UserData user) throws DataAccessException {
         try {
-            String statement = String.format("SELECT * FROM %s WHERE username = ?", UserDataTable);
+            String statement = String.format("SELECT * FROM %s WHERE username = ?", USERDATATABLE);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statement)) {
                     ps.setString(1, user.username());
@@ -114,29 +112,11 @@ public class SqlUserDao implements UserDao {
     }
 
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var ps = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
-                for (var i = 0; i < params.length; i++) {
-                    var param = params[i];
-                    switch (param) {
-                        case String p -> ps.setString(i + 1, p);
-                        case Integer p -> ps.setInt(i + 1, p);
-                        case null -> ps.setNull(i + 1, NULL);
-                        default -> {
-                        }
-                    }
-                }
-                ps.executeUpdate();
-
-                var rs = ps.getGeneratedKeys();
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-
-                return 0;
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException(String.format("unable to update database: %s, %s", statement, e.getMessage()));
+        try {
+            SqlExecuteUpdate update = new SqlExecuteUpdate();
+            return update.executeUpdate(statement, params);
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
         }
     }
 
