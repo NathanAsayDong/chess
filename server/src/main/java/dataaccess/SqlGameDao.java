@@ -12,7 +12,7 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.sql.Types.NULL;
 
 public class SqlGameDao implements GameDao {
-    private static final String table = "GameData";
+    private static final String Table = "GameData";
 
     public SqlGameDao() throws DataAccessException {
         try {
@@ -25,7 +25,7 @@ public class SqlGameDao implements GameDao {
     @Override
     public List<GameData> getAllGames() throws DataAccessException {
         try {
-            String statment = String.format("SELECT * FROM %s", table);
+            String statment = String.format("SELECT * FROM %s", Table);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statment)) {
                     try (var rs = ps.executeQuery()) {
@@ -74,7 +74,7 @@ public class SqlGameDao implements GameDao {
     @Override
     public GameData getGameById(Integer gameId) throws DataAccessException {
         try {
-            String statment = String.format("SELECT * FROM %s WHERE gameId = ?", table);
+            String statment = String.format("SELECT * FROM %s WHERE gameId = ?", Table);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statment)) {
                     ps.setInt(1, gameId);

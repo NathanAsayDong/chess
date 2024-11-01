@@ -13,8 +13,8 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.sql.Types.NULL;
 
 public class SqlUserDao implements UserDao {
-    private static final String userDataTable = "UserData";
-    private static final String userAuthTable = "UserAuth";
+    private static final String UserDataTable = "UserData";
+    private static final String UserAuthTable = "UserAuth";
 
     public SqlUserDao() throws DataAccessException {
         try {
@@ -29,10 +29,10 @@ public class SqlUserDao implements UserDao {
         try {
             String authToken = UUID.randomUUID().toString();
             String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
-            String user_data_statement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", userDataTable);
-            executeUpdate(user_data_statement, user.username(), user.email(), hashedPassword);
-            String user_auth_statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", userAuthTable);
-            executeUpdate(user_auth_statement, authToken, user.username());
+            String userDataStatement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", UserDataTable);
+            executeUpdate(userDataStatement, user.username(), user.email(), hashedPassword);
+            String userAuthStatement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", UserAuthTable);
+            executeUpdate(userAuthStatement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
@@ -43,7 +43,7 @@ public class SqlUserDao implements UserDao {
     public AuthData login(UserData user) throws DataAccessException {
         try {
             String authToken = UUID.randomUUID().toString();
-            String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", userAuthTable);
+            String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", UserAuthTable);
             executeUpdate(statement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
@@ -54,7 +54,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public void logout(AuthData authData) throws DataAccessException {
         try {
-            String statement = String.format("DELETE FROM %s WHERE authToken = ?", userAuthTable);
+            String statement = String.format("DELETE FROM %s WHERE authToken = ?", UserAuthTable);
             executeUpdate(statement, authData.authToken());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
@@ -64,7 +64,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public AuthData getAuthByToken(String token) throws DataAccessException {
         try {
-            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", userAuthTable);
+            String statement = String.format("SELECT * FROM %s WHERE authToken = ?", UserAuthTable);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statement)) {
                     ps.setString(1, token);
@@ -86,7 +86,7 @@ public class SqlUserDao implements UserDao {
     @Override
     public UserData getUserDataByUserData(UserData user) throws DataAccessException {
         try {
-            String statement = String.format("SELECT * FROM %s WHERE username = ?", userDataTable);
+            String statement = String.format("SELECT * FROM %s WHERE username = ?", UserDataTable);
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(statement)) {
                     ps.setString(1, user.username());
@@ -118,9 +118,13 @@ public class SqlUserDao implements UserDao {
             try (var ps = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
                 for (var i = 0; i < params.length; i++) {
                     var param = params[i];
-                    if (param instanceof String p) ps.setString(i + 1, p);
-                    else if (param instanceof Integer p) ps.setInt(i + 1, p);
-                    else if (param == null) ps.setNull(i + 1, NULL);
+                    switch (param) {
+                        case String p -> ps.setString(i + 1, p);
+                        case Integer p -> ps.setInt(i + 1, p);
+                        case null -> ps.setNull(i + 1, NULL);
+                        default -> {
+                        }
+                    }
                 }
                 ps.executeUpdate();
 
