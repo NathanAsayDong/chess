@@ -1,137 +1,159 @@
 package ui;
+
 import java.util.Arrays;
 
+import chess.ChessGame;
+import model.AuthData;
+import model.GameData;
+import model.ListGamesResult;
 
 public class ChessClient {
-        private String userName = null;
-        private final ServerFacade server;
-        private final String serverUrl;
-        private StateEnum state = StateEnum.SIGNEDOUT;
+    private String authToken = null;
+    private final ServerFacade server;
+    private final String serverUrl;
+    private StateEnum state = StateEnum.SIGNEDOUT;
 
-        public ChessClient(String serverUrl) {
-            server = new ServerFacade(serverUrl);
-            this.serverUrl = serverUrl;
+    public ChessClient(String serverUrl) {
+        server = new ServerFacade(serverUrl);
+        this.serverUrl = serverUrl;
+    }
+
+    public String eval(String input) {
+        try {
+            var tokens = input.toLowerCase().split(" ");
+            var cmd = (tokens.length > 0) ? tokens[0] : "help";
+            var params = Arrays.copyOfRange(tokens, 1, tokens.length);
+            return switch (cmd) {
+                case "register" -> register(params);
+                case "login" -> login(params);
+                case "logout" -> logout();
+                case "create" -> createGame(params);
+                case "list" -> listGames();
+                case "join" -> joinGame(params);
+                case "observe" -> observeGame(params);
+                case "quit" -> "quit";
+                default -> help();
+            };
+        } catch (Exception ex) {
+            return ex.getMessage();
         }
+    }
 
-        public String eval(String input) {
-            try {
-                var tokens = input.toLowerCase().split(" ");
-                var cmd = (tokens.length > 0) ? tokens[0] : "help";
-                var params = Arrays.copyOfRange(tokens, 1, tokens.length);
-                return switch (cmd) {
-                    case "signin" -> signIn(params);
-                    case "rescue" -> rescuePet(params);
-                    case "list" -> listPets();
-                    case "signout" -> signOut();
-                    case "adopt" -> adoptPet(params);
-                    case "adoptall" -> adoptAllPets();
-                    case "quit" -> "quit";
-                    default -> help();
-                };
-            } catch (ResponseException ex) {
-                return ex.getMessage();
-            }
+    public String register(String... params) throws Exception {
+        if (params.length >= 3) {
+            String username = params[0];
+            String password = params[1];
+            String email = params[2];
+            
+            AuthData auth = server.register(username, password, email);
+            authToken = auth.authToken();
+            state = StateEnum.SIGNEDIN;
+            return String.format("You registered and logged in as %s.", username);
         }
+        throw new Exception("Expected: <USERNAME> <PASSWORD> <EMAIL>");
+    }
 
-        public String signIn(String... params) throws ResponseException {
-            if (params.length >= 1) {
-                state = State.SIGNEDIN;
-                visitorName = String.join("-", params);
-                ws = new WebSocketFacade(serverUrl, notificationHandler);
-                ws.enterPetShop(visitorName);
-                return String.format("You signed in as %s.", visitorName);
-            }
-            throw new ResponseException(400, "Expected: <yourname>");
+    public String login(String... params) throws Exception {
+        if (params.length >= 2) {
+            String username = params[0];
+            String password = params[1];
+            
+            AuthData auth = server.login(username, password);
+            authToken = auth.authToken();
+            state = StateEnum.SIGNEDIN;
+            return String.format("You logged in as %s.", username);
         }
+        throw new Exception("Expected: <USERNAME> <PASSWORD>");
+    }
 
-        public String rescuePet(String... params) throws ResponseException {
-            assertSignedIn();
-            if (params.length >= 2) {
-                var name = params[0];
-                var type = PetType.valueOf(params[1].toUpperCase());
-                var pet = new Pet(0, name, type);
-                pet = server.addPet(pet);
-                return String.format("You rescued %s. Assigned ID: %d", pet.name(), pet.id());
-            }
-            throw new ResponseException(400, "Expected: <name> <CAT|DOG|FROG>");
+    public String logout() throws Exception {
+        assertSignedIn();
+        server.logout(authToken);
+        authToken = null;
+        state = StateEnum.SIGNEDOUT;
+        return "You have been logged out.";
+    }
+
+    public String createGame(String... params) throws Exception {
+        assertSignedIn();
+        if (params.length >= 1) {
+            String gameName = String.join(" ", params);
+            var response = server.createGame(gameName, authToken);
+            return String.format("Created game %s with ID: %d", gameName, response.get("gameID"));
         }
+        throw new Exception("Expected: <GAME_NAME>");
+    }
 
-        public String listPets() throws ResponseException {
-            assertSignedIn();
-            var pets = server.listPets();
-            var result = new StringBuilder();
-            var gson = new Gson();
-            for (var pet : pets) {
-                result.append(gson.toJson(pet)).append('\n');
-            }
-            return result.toString();
+    public String listGames() throws Exception {
+        assertSignedIn();
+        ListGamesResult result = server.listGames(authToken);
+        if (result.games().isEmpty()) {
+            return "No games available.";
         }
-
-        public String adoptPet(String... params) throws ResponseException {
-            assertSignedIn();
-            if (params.length == 1) {
-                try {
-                    var id = Integer.parseInt(params[0]);
-                    var pet = getPet(id);
-                    if (pet != null) {
-                        server.deletePet(id);
-                        return String.format("%s says %s", pet.name(), pet.sound());
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            throw new ResponseException(400, "Expected: <pet id>");
+        
+        StringBuilder output = new StringBuilder();
+        output.append("Available Games:\n");
+        int index = 1;
+        for (GameData game : result.games()) {
+            output.append(String.format("%d. %s (ID: %d)\n", index++, game.gameName(), game.gameID()));
+            output.append(String.format("   White: %s\n", game.whiteUsername() != null ? game.whiteUsername() : "EMPTY"));
+            output.append(String.format("   Black: %s\n", game.blackUsername() != null ? game.blackUsername() : "EMPTY"));
         }
+        return output.toString();
+    }
 
-        public String adoptAllPets() throws ResponseException {
-            assertSignedIn();
-            var buffer = new StringBuilder();
-            for (var pet : server.listPets()) {
-                buffer.append(String.format("%s says %s%n", pet.name(), pet.sound()));
-            }
-
-            server.deleteAllPets();
-            return buffer.toString();
+    public String joinGame(String... params) throws Exception {
+        assertSignedIn();
+        if (params.length >= 2) {
+            int gameId = Integer.parseInt(params[0]);
+            String color = params[1].toUpperCase();
+            ChessGame.TeamColor teamColor = switch (color) {
+                case "WHITE" -> ChessGame.TeamColor.WHITE;
+                case "BLACK" -> ChessGame.TeamColor.BLACK;
+                default -> throw new Exception("Invalid team color. Use WHITE or BLACK");
+            };
+            
+            server.joinGame(gameId, teamColor, authToken);
+            return String.format("You joined game %d as %s", gameId, color);
         }
+        throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
+    }
 
-        public String signOut() throws ResponseException {
-            assertSignedIn();
-            ws.leavePetShop(visitorName);
-            ws = null;
-            state = State.SIGNEDOUT;
-            return String.format("%s left the shop", visitorName);
+    public String observeGame(String... params) throws Exception {
+        assertSignedIn();
+        if (params.length >= 1) {
+            int gameId = Integer.parseInt(params[0]);
+            server.joinGame(gameId, null, authToken);
+            return String.format("You are now observing game %d", gameId);
         }
+        throw new Exception("Expected: <GAME_ID>");
+    }
 
-        private Pet getPet(int id) throws ResponseException {
-            for (var pet : server.listPets()) {
-                if (pet.id() == id) {
-                    return pet;
-                }
-            }
-            return null;
-        }
-
-        public String help() {
-            if (state == State.SIGNEDOUT) {
-                return """
-                    - signIn <yourname>
-                    - quit
-                    """;
-            }
+    public String help() {
+        if (state == StateEnum.SIGNEDOUT) {
             return """
-                - list
-                - adopt <pet id>
-                - rescue <name> <CAT|DOG|FROG|FISH>
-                - adoptAll
-                - signOut
+                Available commands:
+                - register <USERNAME> <PASSWORD> <EMAIL>
+                - login <USERNAME> <PASSWORD>
+                - help
                 - quit
                 """;
         }
+        return """
+            Available commands:
+            - create <GAME_NAME>
+            - list
+            - join <GAME_ID> <WHITE|BLACK>
+            - observe <GAME_ID>
+            - logout
+            - help
+            - quit
+            """;
+    }
 
-        private void assertSignedIn() throws ResponseException {
-            if (state == State.SIGNEDOUT) {
-                throw new ResponseException(400, "You must sign in");
-            }
+    private void assertSignedIn() throws Exception {
+        if (state == StateEnum.SIGNEDOUT) {
+            throw new Exception("You must sign in first.");
         }
     }
 }

@@ -1,8 +1,121 @@
 package ui;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.Map;
+
+import com.google.gson.Gson;
+
+import chess.ChessGame;
+import model.AuthData;
+import model.ListGamesResult;
+import model.UserData;
+
 public class ServerFacade {
+    private final String serverUrl;
 
     public ServerFacade(String serverUrl) {
+        this.serverUrl = serverUrl;
+    }
 
+    public AuthData register(String username, String password, String email) throws Exception {
+        var userData = new UserData(username, password, email);
+        var path = "/user";
+        
+        return this.makeRequest("POST", path, userData, null, AuthData.class);
+    }
+
+    public AuthData login(String username, String password) throws Exception {
+        var userData = new UserData(username, password, null);
+        var path = "/session";
+        
+        return this.makeRequest("POST", path, userData, null, AuthData.class);
+    }
+
+    public void logout(String authToken) throws Exception {
+        var path = "/session";
+        this.makeRequest("DELETE", path, null, authToken, null);
+    }
+
+    public ListGamesResult listGames(String authToken) throws Exception {
+        var path = "/game";
+        return this.makeRequest("GET", path, null, authToken, ListGamesResult.class);
+    }
+
+    public Map createGame(String gameName, String authToken) throws Exception {
+        var path = "/game";
+        var body = Map.of("gameName", gameName);
+        return this.makeRequest("POST", path, body, authToken, Map.class);
+    }
+
+    public void joinGame(int gameID, ChessGame.TeamColor playerColor, String authToken) throws Exception {
+        var path = "/game";
+        var body = Map.of(
+            "gameID", gameID,
+            "playerColor", playerColor != null ? playerColor.toString() : null
+        );
+        this.makeRequest("PUT", path, body, authToken, null);
+    }
+
+    private <T> T makeRequest(String method, String path, Object request, String authToken, Class<T> responseClass) throws Exception {
+        try {
+            URL url = new URI(serverUrl + path).toURL();
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod(method);
+            http.setDoOutput(true);
+            http.addRequestProperty("Content-Type", "application/json");
+
+            if (authToken != null) {
+                http.addRequestProperty("authorization", authToken);
+            }
+
+            if (request != null) {
+                writeBody(request, http);
+            }
+
+            http.connect();
+            throwIfNotSuccessful(http);
+            return readBody(http, responseClass);
+        } catch (Exception ex) {
+            throw new Exception("Error: " + ex.getMessage());
+        }
+    }
+
+    private static void writeBody(Object request, HttpURLConnection http) throws IOException {
+        if (request != null) {
+            String reqData = new Gson().toJson(request);
+            try (OutputStream reqBody = http.getOutputStream()) {
+                reqBody.write(reqData.getBytes());
+            }
+        }
+    }
+
+    private static <T> T readBody(HttpURLConnection http, Class<T> responseClass) throws IOException {
+        T response = null;
+        if (http.getContentLength() < 0) {
+            try (InputStream respBody = http.getInputStream()) {
+                InputStreamReader reader = new InputStreamReader(respBody);
+                if (responseClass != null) {
+                    response = new Gson().fromJson(reader, responseClass);
+                }
+            }
+        }
+        return response;
+    }
+
+    private void throwIfNotSuccessful(HttpURLConnection http) throws IOException, Exception {
+        var status = http.getResponseCode();
+        if (!isSuccessful(status)) {
+            throw new Exception("failure: " + status);
+        }
+    }
+
+    private boolean isSuccessful(int status) {
+        return status / 100 == 2;
     }
 }
