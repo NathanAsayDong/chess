@@ -197,10 +197,8 @@ public class ChessClient {
         
         // Draw handeling for Observers
         if (viewType == ViewEnum.OBSERVE) {
-            view.append("WHITE's view:\n");
             view.append(getGameView(game, ViewEnum.VIEW, true));
             view.append("\n\n");
-            view.append("BLACK's view:\n");
             view.append(getGameView(game, ViewEnum.VIEW, false));
         }
     
