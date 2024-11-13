@@ -122,7 +122,7 @@ public class ChessClient {
                 .filter(g -> g.gameID() == gameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, ViewEnum.OBSERVE);
+            String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
             return String.format("You joined game %d as %s\n%s", gameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -137,7 +137,7 @@ public class ChessClient {
                 .filter(g -> g.gameID() == gameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, ViewEnum.OBSERVE);
+            String gameView = getGameView(game, ViewEnum.OBSERVE, false);
             return String.format("You are now observing game %d\n%s", gameId, gameView);
         }
         throw new Exception("Expected: <GAME_ID>");
@@ -179,19 +179,29 @@ public class ChessClient {
         }
     }
 
-    private String getGameView(GameData game, ViewEnum viewType) {
+    private String getGameView(GameData game, ViewEnum viewType, boolean isWhiteView) {
         ChessGame chessGame = game.game();
         StringBuilder view = new StringBuilder();
     
-        // Draw handeling for Players
-        view.append("WHITE's view:\n");
-        drawBoardView(view, chessGame, true);
+        // Draw handeling for white players
+        if (viewType == ViewEnum.VIEW && isWhiteView) {
+            view.append("WHITE's view:\n");
+            drawBoardView(view, chessGame, true);
+        }
+
+        // Draw handeling for black players
+        if (viewType == ViewEnum.VIEW && !isWhiteView) {
+            view.append("BLACK's view:\n");
+            drawBoardView(view, chessGame, false);
+        }
         
         // Draw handeling for Observers
         if (viewType == ViewEnum.OBSERVE) {
+            view.append("WHITE's view:\n");
+            view.append(getGameView(game, ViewEnum.VIEW, true));
             view.append("\n\n");
             view.append("BLACK's view:\n");
-            drawBoardView(view, chessGame, false);
+            view.append(getGameView(game, ViewEnum.VIEW, false));
         }
     
         return view.toString();
