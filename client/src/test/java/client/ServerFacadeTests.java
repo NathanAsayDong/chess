@@ -2,7 +2,6 @@ package client;
 
 import java.util.Map;
 
-import model.GameData;
 import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import chess.ChessGame;
 import model.AuthData;
+import model.GameData;
 import model.ListGamesResult;
 import server.Server;
 import ui.ServerFacade;
@@ -27,7 +27,7 @@ public class ServerFacadeTests {
     @BeforeAll
     public static void init() {
         server = new Server();
-        var port = server.run(8080);
+        var port = server.run(0);
         System.out.println("Started test HTTP server on " + port);
         facade = new ServerFacade("http://localhost:" + port);
     }
@@ -92,6 +92,13 @@ public class ServerFacadeTests {
         facade.register("player1", "password123", "p1@email.com");
         AuthData authData = facade.login("player1", "password123");
         facade.logout(authData.authToken());
+    }
+
+    @Test
+    public void logoutNegative() throws Exception {
+        assertThrows(Exception.class, () -> {
+            facade.logout("invalidToken");
+        });
     }
 
     @Test
