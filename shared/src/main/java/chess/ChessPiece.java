@@ -1,6 +1,5 @@
 package chess;
 
-import javax.swing.text.Position;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -36,7 +35,7 @@ public class ChessPiece {
     @Override
     public String toString() {
         switch (this.pieceColor) {
-            case WHITE:
+            case BLACK:
                 switch (this.type) {
                     case KING:
                         return "♔";
@@ -51,7 +50,7 @@ public class ChessPiece {
                     case PAWN:
                         return "♙";
                 }
-            case BLACK:
+            case WHITE:
                 switch (this.type) {
                     case KING:
                         return "♚";
