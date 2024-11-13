@@ -2,6 +2,7 @@ package client;
 
 import java.util.Map;
 
+import model.GameData;
 import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -104,10 +105,9 @@ public class ServerFacadeTests {
 
     @Test
     public void listGamesNegative() throws Exception {
-        facade.register("player1", "password123", "p1@email.com");
-        authData = facade.login("player1", "password123");
-        ListGamesResult result = facade.listGames(authData.authToken());
-        assertNotNull(result);
+        assertThrows(Exception.class, () -> {
+            facade.listGames("invalidToken");
+        });
     }
 
     @Test
@@ -120,10 +120,8 @@ public class ServerFacadeTests {
 
     @Test
     public void createGameNegative() throws Exception {
-        facade.register("player1", "password123", "p1@email.com");
-        authData = facade.login("player1", "password123");
         assertThrows(Exception.class, () -> {
-            facade.createGame("testGame", authData.authToken());
+            facade.createGame("testGame", "invalidToken");
         });
     }
 
@@ -132,7 +130,8 @@ public class ServerFacadeTests {
         facade.register("player1", "password123", "p1@email.com");
         authData = facade.login("player1", "password123");
         Map<String, Object> result = facade.createGame("testGame", authData.authToken());
-        assertNotNull(result);
+        GameData game = facade.joinGame(((Double) result.get("gameID")).intValue(), ChessGame.TeamColor.WHITE, authData.authToken());
+        assertNotNull(game);
     }
 
     @Test
