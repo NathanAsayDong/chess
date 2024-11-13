@@ -42,6 +42,22 @@ public class ServerFacadeTests {
     }
 
     @Test
+    public void clearPositive() throws Exception {
+        AuthData authData = facade.register("player1", "password123", "p1@email.com");
+        facade.clear();
+        assertThrows(Exception.class, () -> {
+            facade.login("player1", "password123");
+        });
+    }
+
+    @Test
+    public void clearNegative() throws Exception {
+        assertThrows(Exception.class, () -> {
+            facade.clear();
+        });
+    }
+
+    @Test
     public void registerPositive() throws Exception {
         AuthData authData = facade.register("player1", "password123", "p1@email.com");
         assertNotNull(authData);
