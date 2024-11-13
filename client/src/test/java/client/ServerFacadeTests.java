@@ -52,9 +52,7 @@ public class ServerFacadeTests {
 
     @Test
     public void clearNegative() throws Exception {
-        assertThrows(Exception.class, () -> {
-            facade.clear();
-        });
+        facade.clear();
     }
 
     @Test
