@@ -1,20 +1,28 @@
 package server;
 
-import chess.ChessGame;
+import java.util.List;
+import java.util.Map;
+
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import dataaccess.*;
+
+import chess.ChessGame;
+import dataaccess.DataAccessException;
+import dataaccess.DuplicateInfoException;
+import dataaccess.GameDao;
+import dataaccess.InvalidParametersException;
+import dataaccess.SqlGameDao;
+import dataaccess.SqlUserDao;
+import dataaccess.UnauthorizedException;
+import dataaccess.UserDao;
 import model.AuthData;
 import model.GameData;
 import model.ListGamesResult;
 import model.UserData;
 import service.ChessService;
 import service.UserService;
-import spark.*;
-
-import java.util.List;
-import java.util.Map;
+import spark.Request;
+import spark.Response;
+import spark.Spark;
 
 public class Server {
     static UserDao topLevelUserDao;
@@ -166,7 +174,7 @@ public class Server {
         try {
             gameID = Math.round(Float.parseFloat(body.get("gameID").toString()));
             teamColor = ChessGame.TeamColor.valueOf(body.get("playerColor").toString());
-            if (authToken == null || body.get("playerColor") == null || body.get("gameID") == null) {
+            if (authToken == null || body.get("gameID") == null) {
                 res.status(400);
                 return new Gson().toJson(Map.of("message", "Error: bad request"));
             }

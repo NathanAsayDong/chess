@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 
 import chess.ChessGame;
 import model.AuthData;
+import model.GameData;
 import model.ListGamesResult;
 import model.UserData;
 
@@ -53,13 +54,13 @@ public class ServerFacade {
         return this.makeRequest("POST", path, body, authToken, Map.class);
     }
 
-    public void joinGame(int gameID, ChessGame.TeamColor playerColor, String authToken) throws Exception {
+    public GameData joinGame(int gameID, ChessGame.TeamColor playerColor, String authToken) throws Exception {
         var path = "/game";
         var body = Map.of(
             "gameID", gameID,
             "playerColor", playerColor != null ? playerColor.toString() : null
         );
-        this.makeRequest("PUT", path, body, authToken, null);
+        return this.makeRequest("PUT", path, body, authToken, GameData.class);
     }
 
     private <T> T makeRequest(String method, String path, Object request, String authToken, Class<T> responseClass) throws Exception {

@@ -29,7 +29,7 @@ public class ChessClient {
                 case "logout" -> logout();
                 case "create" -> createGame(params);
                 case "list" -> listGames();
-                case "join" -> joinGame(params);
+                case "play" -> playGame(params);
                 case "observe" -> observeGame(params);
                 case "quit" -> "quit";
                 default -> help();
@@ -102,7 +102,7 @@ public class ChessClient {
         return output.toString();
     }
 
-    public String joinGame(String... params) throws Exception {
+    public String playGame(String... params) throws Exception {
         assertSignedIn();
         if (params.length >= 2) {
             int gameId = Integer.parseInt(params[0]);
@@ -114,7 +114,13 @@ public class ChessClient {
             };
             
             server.joinGame(gameId, teamColor, authToken);
-            return String.format("You joined game %d as %s", gameId, color);
+            ListGamesResult result = server.listGames(authToken);
+            GameData game = result.games().stream()
+                .filter(g -> g.gameID() == gameId)
+                .findFirst()
+                .orElseThrow(() -> new Exception("Game not found"));
+            String gameView = getGameView(game);
+            return String.format("You joined game %d as %s\n%s", gameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
     }
@@ -123,8 +129,13 @@ public class ChessClient {
         assertSignedIn();
         if (params.length >= 1) {
             int gameId = Integer.parseInt(params[0]);
-            server.joinGame(gameId, null, authToken);
-            return String.format("You are now observing game %d", gameId);
+            ListGamesResult result = server.listGames(authToken);
+            GameData game = result.games().stream()
+                .filter(g -> g.gameID() == gameId)
+                .findFirst()
+                .orElseThrow(() -> new Exception("Game not found"));
+            String gameView = getGameView(game);
+            return String.format("You are now observing game %d\n%s", gameId, gameView);
         }
         throw new Exception("Expected: <GAME_ID>");
     }
@@ -143,7 +154,7 @@ public class ChessClient {
             Available commands:
             - create <GAME_NAME>
             - list
-            - join <GAME_ID> <WHITE|BLACK>
+            - play <GAME_ID> <WHITE|BLACK>
             - observe <GAME_ID>
             - logout
             - help
@@ -155,5 +166,57 @@ public class ChessClient {
         if (state == StateEnum.SIGNEDOUT) {
             throw new Exception("You must sign in first.");
         }
+    }
+
+    private String getGameView(GameData game) {
+        ChessGame chessGame = game.game();
+        StringBuilder view = new StringBuilder();
+        
+        // White's view (bottom to top)
+        view.append("WHITE's view:\n");
+        ChessGame.TeamColor[] colors = {ChessGame.TeamColor.WHITE, ChessGame.TeamColor.BLACK};
+        for (int row = 7; row >= 0; row--) {
+            view.append(row + 1).append(" ");
+            for (int col = 0; col < 8; col++) {
+                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
+                if ((row + col) % 2 == 0) {
+                    view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
+                } else {
+                    view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
+                }
+                if (piece == null) {
+                    view.append("   ");
+                } else {
+                    view.append(" ").append(piece.toString()).append(" ");
+                }
+                view.append(EscapeSequences.RESET_BG_COLOR);
+            }
+            view.append("\n");
+        }
+        view.append("  a  b  c  d  e  f  g  h\n\n");
+
+        // Black's view (top to bottom)
+        view.append("BLACK's view:\n");
+        for (int row = 0; row < 8; row++) {
+            view.append(row + 1).append(" ");
+            for (int col = 7; col >= 0; col--) {
+                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
+                if ((row + col) % 2 == 0) {
+                    view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
+                } else {
+                    view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
+                }
+                if (piece == null) {
+                    view.append("   ");
+                } else {
+                    view.append(" ").append(piece.toString()).append(" ");
+                }
+                view.append(EscapeSequences.RESET_BG_COLOR);
+            }
+            view.append("\n");
+        }
+        view.append("  h  g  f  e  d  c  b  a");
+
+        return view.toString();
     }
 }
