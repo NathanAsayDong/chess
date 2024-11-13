@@ -97,12 +97,15 @@ public class ServerFacadeTests {
     public void listGamesPositive() throws Exception {
         facade.register("player1", "password123", "p1@email.com");
         authData = facade.login("player1", "password123");
+        facade.createGame("testGame", authData.authToken());
         ListGamesResult result = facade.listGames(authData.authToken());
-        assertNotNull(result);
+        assertEquals(1, result.games().size());
     }
 
     @Test
     public void listGamesNegative() throws Exception {
+        facade.register("player1", "password123", "p1@email.com");
+        authData = facade.login("player1", "password123");
         ListGamesResult result = facade.listGames(authData.authToken());
         assertNotNull(result);
     }
