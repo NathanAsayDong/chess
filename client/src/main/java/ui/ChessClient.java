@@ -122,7 +122,7 @@ public class ChessClient {
                 .filter(g -> g.gameID() == gameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game);
+            String gameView = getGameView(game, ViewEnum.VIEW);
             return String.format("You joined game %d as %s\n%s", gameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -137,7 +137,7 @@ public class ChessClient {
                 .filter(g -> g.gameID() == gameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game);
+            String gameView = getGameView(game, ViewEnum.OBSERVE);
             return String.format("You are now observing game %d\n%s", gameId, gameView);
         }
         throw new Exception("Expected: <GAME_ID>");
