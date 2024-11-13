@@ -24,6 +24,12 @@ public class ServerFacade {
         this.serverUrl = serverUrl;
     }
 
+    public void clear() throws Exception {
+        var path = "/db";
+        this.makeRequest("DELETE", path, null, null, null);
+    }
+
+
     public AuthData register(String username, String password, String email) throws Exception {
         var userData = new UserData(username, password, email);
         var path = "/user";
@@ -83,7 +89,7 @@ public class ServerFacade {
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
-            throw new Exception("Error: " + ex.getMessage());
+            throw new Exception(ex.getMessage());
         }
     }
 
@@ -112,7 +118,12 @@ public class ServerFacade {
     private void throwIfNotSuccessful(HttpURLConnection http) throws IOException, Exception {
         var status = http.getResponseCode();
         if (!isSuccessful(status)) {
-            throw new Exception("failure: " + status);
+            try (InputStream respBody = http.getErrorStream()) {
+                InputStreamReader reader = new InputStreamReader(respBody);
+                Map<String, String> errorResponse = new Gson().fromJson(reader, Map.class);
+                String message = errorResponse.get("message");
+                throw new Exception(message);
+            }
         }
     }
 

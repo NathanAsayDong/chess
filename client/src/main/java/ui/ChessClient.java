@@ -31,6 +31,7 @@ public class ChessClient {
                 case "list" -> listGames();
                 case "play" -> playGame(params);
                 case "observe" -> observeGame(params);
+                case "clear" -> clear();
                 case "quit" -> "quit";
                 default -> help();
             };
@@ -79,7 +80,9 @@ public class ChessClient {
         if (params.length >= 1) {
             String gameName = String.join(" ", params);
             var response = server.createGame(gameName, authToken);
-            return String.format("Created game %s with ID: %d", gameName, response.get("gameID"));
+            Double gameIdDouble = (Double) response.get("gameID");
+            int gameId = gameIdDouble.intValue();
+            return String.format("Created game %s with ID: %d", gameName, gameId);
         }
         throw new Exception("Expected: <GAME_NAME>");
     }
@@ -140,6 +143,13 @@ public class ChessClient {
         throw new Exception("Expected: <GAME_ID>");
     }
 
+    public String clear() throws Exception {
+        assertSignedIn();
+        server.logout(authToken);
+        server.clear();
+        return "Cleared application.";
+    }
+
     public String help() {
         if (state == StateEnum.SIGNEDOUT) {
             return """
@@ -159,6 +169,7 @@ public class ChessClient {
             - logout
             - help
             - quit
+            - clear
             """;
     }
 

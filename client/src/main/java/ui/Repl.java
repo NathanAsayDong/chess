@@ -34,7 +34,7 @@ public class Repl {
                     if (tokens.length > 1 && result.contains("logged in")) {
                         username = tokens[1];
                     }
-                } else if (line.startsWith("logout")) {
+                } else if (line.startsWith("logout") || line.startsWith("clear")) {
                     username = null;
                 }
             } catch (Throwable e) {
