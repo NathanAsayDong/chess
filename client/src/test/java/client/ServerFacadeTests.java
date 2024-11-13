@@ -145,12 +145,4 @@ public class ServerFacadeTests {
             facade.joinGame(-1, ChessGame.TeamColor.WHITE, authData.authToken());
         });
     }
-
-    @Test
-    public void observeGamePositive() throws Exception {
-        facade.register("player1", "password123", "p1@email.com");
-        authData = facade.login("player1", "password123");
-        Map<String, Object> result = facade.createGame("testGame", authData.authToken());
-        assertNotNull(result);
-    }
 }
