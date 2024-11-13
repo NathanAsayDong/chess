@@ -122,7 +122,7 @@ public class ChessClient {
                 .filter(g -> g.gameID() == gameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, ViewEnum.VIEW);
+            String gameView = getGameView(game, ViewEnum.OBSERVE);
             return String.format("You joined game %d as %s\n%s", gameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -179,55 +179,44 @@ public class ChessClient {
         }
     }
 
-    private String getGameView(GameData game) {
+    private String getGameView(GameData game, ViewEnum viewType) {
         ChessGame chessGame = game.game();
         StringBuilder view = new StringBuilder();
-        
-        // White's view (bottom to top)
+    
+        // Draw handeling for Players
         view.append("WHITE's view:\n");
-        ChessGame.TeamColor[] colors = {ChessGame.TeamColor.WHITE, ChessGame.TeamColor.BLACK};
-        for (int row = 7; row >= 0; row--) {
-            view.append(row + 1).append(" ");
-            for (int col = 0; col < 8; col++) {
-                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
-                if ((row + col) % 2 == 0) {
-                    view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
-                } else {
-                    view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
-                }
-                if (piece == null) {
-                    view.append("   ");
-                } else {
-                    view.append(" ").append(piece.toString()).append(" ");
-                }
-                view.append(EscapeSequences.RESET_BG_COLOR);
-            }
-            view.append("\n");
+        drawBoardView(view, chessGame, true);
+        
+        // Draw handeling for Observers
+        if (viewType == ViewEnum.OBSERVE) {
+            view.append("\n\n");
+            view.append("BLACK's view:\n");
+            drawBoardView(view, chessGame, false);
         }
-        view.append("  a  b  c  d  e  f  g  h\n\n");
-
-        // Black's view (top to bottom)
-        view.append("BLACK's view:\n");
-        for (int row = 0; row < 8; row++) {
-            view.append(row + 1).append(" ");
-            for (int col = 7; col >= 0; col--) {
-                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
-                if ((row + col) % 2 == 0) {
-                    view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
-                } else {
-                    view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
-                }
-                if (piece == null) {
-                    view.append("   ");
-                } else {
-                    view.append(" ").append(piece.toString()).append(" ");
-                }
-                view.append(EscapeSequences.RESET_BG_COLOR);
-            }
-            view.append("\n");
-        }
-        view.append("  h  g  f  e  d  c  b  a");
-
+    
         return view.toString();
+    }
+    
+    private void drawBoardView(StringBuilder view, ChessGame chessGame, boolean isWhiteView) {
+        for (int row = isWhiteView ? 7 : 0; isWhiteView ? row >= 0 : row < 8; row += isWhiteView ? -1 : 1) {
+            view.append(row + 1).append(" ");
+            for (int col = isWhiteView ? 0 : 7; isWhiteView ? col < 8 : col >= 0; col += isWhiteView ? 1 : -1) {
+                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
+                if ((row + col) % 2 == 0) {
+                    view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
+                } else {
+                    view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
+                }
+                if (piece == null) {
+                    view.append("   ");
+                } else {
+                    view.append(" ").append(piece.toString()).append(" ");
+                }
+                view.append(EscapeSequences.RESET_BG_COLOR);
+            }
+            view.append("\n");
+        }
+        
+        view.append(isWhiteView ? "  a  b  c  d  e  f  g  h" : "  h  g  f  e  d  c  b  a");
     }
 }
