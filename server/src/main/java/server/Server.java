@@ -62,6 +62,8 @@ public class Server {
         Spark.put("/game", this::joinGame);
 
         Spark.delete("/db", this::clearApplication);
+
+        Spark.webSocket("/wb", WebSocketHandler.class);
         Spark.init();
 
         Spark.awaitInitialization();
