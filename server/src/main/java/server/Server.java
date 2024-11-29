@@ -23,6 +23,7 @@ import service.UserService;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
+import websocket.WebSocketHandler;
 
 public class Server {
     static UserDao topLevelUserDao;
@@ -47,6 +48,7 @@ public class Server {
 
     ChessService chessService = new ChessService(topLevelUserDao, topLevelGameDao);
     UserService userService = new UserService(topLevelUserDao);
+    WebSocketHandler webSocketHandler = new WebSocketHandler(chessService, userService);
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
