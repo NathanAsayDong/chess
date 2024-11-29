@@ -17,4 +17,6 @@ public interface UserDao {
     public AuthData getAuthByToken(String token) throws DataAccessException;
 
     public UserData getUserDataByUserData(UserData user) throws DataAccessException;
+
+    public UserData getUserDataByToken(String token) throws DataAccessException;
 }

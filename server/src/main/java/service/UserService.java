@@ -52,6 +52,10 @@ public class UserService {
         return userDao.getAuthByToken(authToken);
     }
 
+    public UserData getUserDataByToken(String authToken) throws Exception {
+        return userDao.getUserDataByToken(authToken);
+    }
+
 
     //private helpers
     private boolean userNameTaken(UserData user) {

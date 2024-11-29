@@ -99,6 +99,23 @@ public class SqlUserDao implements UserDao {
         return null;
     }
 
+    @Override
+    public UserData getUserDataByToken(String token) throws DataAccessException {
+        String statement = String.format("SELECT * FROM %s WHERE authToken = ?", USERAUTHTABLE);
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+            ps.setString(1, token);
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return getUserDataByUserData(new UserData(rs.getString("username"), null, null));
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
+        return null;
+    }
+
 
     @Override
     public void clear() throws DataAccessException {

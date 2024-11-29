@@ -1,85 +1,47 @@
 package ui;
 
-import java.net.InetSocketAddress;
-import java.net.http.WebSocket;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.google.gson.Gson;
 import websocket.commands.UserGameCommand;
-import websocket.messages.ServerMessage;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.util.Map;
 
-public class WebsocketServer {
-    private int PORT = 8080;
-    private final Map<WebSocket, String> connections = new HashMap<>();
-    
-    public WebsocketServer() {
+public class ClientWebsocketHandler {
+    private final String serverUrl;
+    private final WebSocket.Listener wsListener;
+    private WebSocket webSocket;
 
+    public ClientWebsocketHandler(String serverUrl, WebSocket.Listener wsListener) {
+        this.serverUrl = serverUrl;
+        this.wsListener = wsListener;
     }
 
-    public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        // Connection opened
+    public void connect(String authToken) {
+        var uri = URI.create(serverUrl + "/game");
+        var headers = Map.of("Authorization", authToken);
+        var client = HttpClient.newHttpClient();
+        this.webSocket = client.newWebSocketBuilder()
+                .buildAsync(uri, wsListener)
+                .join();
     }
 
-    public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        connections.remove(conn);
+    public void disconnect() {
+        this.webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "Client disconnecting");
     }
 
-    public void onMessage(WebSocket conn, String message) {
-        try {
-            UserGameCommand command = new Gson().fromJson(message, UserGameCommand.class);
-            
-            switch (command.getCommandType()) {
-                case CONNECT:
-                    handleConnect(conn, command);
-                    break;
-                case MAKE_MOVE:
-                    handleMove(conn, command);
-                    break;
-                case LEAVE:
-                    handleLeave(conn, command);
-                    break;
-                case RESIGN:
-                    handleResign(conn, command);
-                    break;
-            }
-        } catch (Exception e) {
-            sendErrorMessage(conn, "Error processing message: " + e.getMessage());
-        }
+    public void sendCommand(UserGameCommand command) {
+        var gson = new Gson();
+        var json = gson.toJson(command);
+        this.webSocket.sendText(json, true);
     }
 
-    public void onError(WebSocket conn, Exception ex) {
-        if (conn != null) {
-            connections.remove(conn);
-        }
-        System.err.println("WebSocket error: " + ex.getMessage());
+
+    public void joinGame(String authToken, int gameID) {
+        UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameID);
+        sendCommand(command);
     }
 
-    public void onStart() {
-        System.out.println("WebSocket server started");
-    }
-
-    private void handleConnect(WebSocket conn, UserGameCommand command) {
-        connections.put(conn, command.getAuthToken());
-        // Additional connection logic here
-    }
-
-    private void handleMove(WebSocket conn, UserGameCommand command) {
-        // Handle move logic
-    }
-
-    private void handleLeave(WebSocket conn, UserGameCommand command) {
-        connections.remove(conn);
-        // Additional leave logic here
-    }
-
-    private void handleResign(WebSocket conn, UserGameCommand command) {
-        // Handle resign logic
-    }
-
-    private void sendErrorMessage(WebSocket conn, String message) {
-        ServerMessage errorMessage = new ServerMessage(ServerMessage.ServerMessageType.ERROR);
-        conn.send(new Gson().toJson(errorMessage));
-    }
 }

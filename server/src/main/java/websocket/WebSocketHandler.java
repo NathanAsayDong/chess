@@ -1,5 +1,9 @@
 package websocket;
 
+import chess.ChessGame;
+import model.AuthData;
+import model.GameData;
+import model.UserData;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
@@ -66,7 +70,16 @@ public class WebSocketHandler {
         }
     }
 
-    private void connectToGame(Session session, UserGameCommand message) {
-        // connect to game
+    private void makeMove(Session session, UserGameCommand message) throws Exception {
+        try {
+            GameData game = chessService.getGameById(message.getGameID());
+            UserData user = userService.getUserDataByToken(message.getAuthToken());
+            if (game == null || user == null) {
+                throw new Exception("Error: game or user does not exist");
+            }
+            chessService.makeMove(game, user, message.getMove());
+        } catch (Exception ex) {
+            System.err.println("Error making move: " + ex.getMessage());
+        }
     }
 }

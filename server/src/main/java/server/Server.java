@@ -65,7 +65,7 @@ public class Server {
 
         Spark.delete("/db", this::clearApplication);
 
-        Spark.webSocket("/wb", WebSocketHandler.class);
+        Spark.webSocket("/wb", webSocketHandler);
         Spark.init();
 
         Spark.awaitInitialization();

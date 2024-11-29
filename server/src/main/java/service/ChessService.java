@@ -1,6 +1,7 @@
 package service;
 
 import chess.ChessGame;
+import chess.ChessMove;
 import dataaccess.*;
 import model.AuthData;
 import model.GameData;
@@ -57,5 +58,15 @@ public class ChessService {
             gameDao.updateGame(updatedGame);
         }
     }
+
+    public GameData getGameById(Integer gameID) throws Exception {
+        return gameDao.getGameById(gameID);
+    }
+
+    public void makeMove(GameData game, UserData user, ChessMove move) throws Exception {
+        game.game().makeMove(move);
+        gameDao.updateGame(game);
+    }
+
 
 }
