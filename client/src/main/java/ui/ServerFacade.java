@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import com.google.gson.Gson;
 
@@ -20,9 +22,12 @@ import model.UserData;
 
 public class ServerFacade {
     private final String serverUrl;
+    private WebSocket webSocket;
+    private final WebSocket.Listener wsListener;
 
-    public ServerFacade(String serverUrl) {
+    public ServerFacade(String serverUrl, WebSocket.Listener wsListener) {
         this.serverUrl = serverUrl;
+        this.wsListener = wsListener;
     }
 
     public void clear() throws Exception {
@@ -133,18 +138,27 @@ public class ServerFacade {
     }
 
 
-    //WEBSOCKET COMMANDS
-    private WebSocketServer webSocketServer;
-
-    public void startWebSocketServer(int port) {
-        webSocketServer = new WebSocketServer(new InetSocketAddress(port));
-        webSocketServer.createWebSocketFactory().register("/ws", new WebSocketHandlerImpl());
-        webSocketServer.start();
+    //WEBSOCKET
+        public void connectToWebSocket() throws Exception {
+        String wsUri = serverUrl.replace("http", "ws") + "/connect";
+        HttpClient client = HttpClient.newHttpClient();
+        
+        CompletableFuture<WebSocket> ws = client.newWebSocketBuilder()
+            .buildAsync(URI.create(wsUri), wsListener);
+            
+        webSocket = ws.join();
     }
 
-    public void stopWebSocketServer() {
-        if (webSocketServer != null) {
-            webSocketServer.stop();
+    public void disconnectWebSocket() {
+        if (webSocket != null) {
+            webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "Client disconnecting");
         }
     }
+
+    public void sendWebSocketMessage(String message) {
+        if (webSocket != null) {
+            webSocket.sendText(message, true);
+        }
+    }
+
 }
