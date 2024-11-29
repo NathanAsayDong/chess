@@ -1,6 +1,8 @@
 package ui;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import chess.ChessGame;
 import model.AuthData;
@@ -12,6 +14,7 @@ public class ChessClient {
     private final ServerFacade server;
     private final String serverUrl;
     private StateEnum state = StateEnum.SIGNEDOUT;
+    private Map<Integer, Integer> gameIDMap = new HashMap<>();
 
     public ChessClient(String serverUrl) {
         server = new ServerFacade(serverUrl);
@@ -82,7 +85,9 @@ public class ChessClient {
             var response = server.createGame(gameName, authToken);
             Double gameIdDouble = (Double) response.get("gameID");
             int gameId = gameIdDouble.intValue();
-            return String.format("Created game %s with ID: %d", gameName, gameId);
+            int map_size = gameIDMap.size() + 1;
+            gameIDMap.put(map_size, gameId);
+            return String.format("Created game %s with ID: %d", gameName, map_size);
         }
         throw new Exception("Expected: <GAME_NAME>");
     }
@@ -93,14 +98,18 @@ public class ChessClient {
         if (result.games().isEmpty()) {
             return "No games available.";
         }
-        
+        //update the map
+        for (int i = 0; i < result.games().size(); i++) {
+            gameIDMap.put(i + 1, result.games().get(i).gameID());
+        }
         StringBuilder output = new StringBuilder();
         output.append("Available Games:\n");
         int index = 1;
         for (GameData game : result.games()) {
-            output.append(String.format("%d. %s (ID: %d)\n", index++, game.gameName(), game.gameID()));
+            output.append(String.format("%s (ID: %d)\n", game.gameName(), index));
             output.append(String.format("   White: %s\n", game.whiteUsername() != null ? game.whiteUsername() : "EMPTY"));
             output.append(String.format("   Black: %s\n", game.blackUsername() != null ? game.blackUsername() : "EMPTY"));
+            index++;
         }
         return output.toString();
     }
@@ -109,6 +118,11 @@ public class ChessClient {
         assertSignedIn();
         if (params.length >= 2) {
             int gameId = Integer.parseInt(params[0]);
+            if (!gameIDMap.containsKey(gameId)) {
+                throw new Exception("Game not found");
+            }
+            int oldGameId = gameId;
+            gameId = gameIDMap.get(gameId);
             String color = params[1].toUpperCase();
             ChessGame.TeamColor teamColor = switch (color) {
                 case "WHITE" -> ChessGame.TeamColor.WHITE;
@@ -118,12 +132,13 @@ public class ChessClient {
             
             server.joinGame(gameId, teamColor, authToken);
             ListGamesResult result = server.listGames(authToken);
+            int finalGameId = gameId;
             GameData game = result.games().stream()
-                .filter(g -> g.gameID() == gameId)
+                .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
             String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
-            return String.format("You joined game %d as %s\n%s", gameId, color, gameView);
+            return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
     }
@@ -132,13 +147,19 @@ public class ChessClient {
         assertSignedIn();
         if (params.length >= 1) {
             int gameId = Integer.parseInt(params[0]);
+            if (!gameIDMap.containsKey(gameId)) {
+                throw new Exception("Game not found");
+            }
+            int oldGameId = gameId;
+            gameId = gameIDMap.get(gameId);
             ListGamesResult result = server.listGames(authToken);
+            int finalGameId = gameId;
             GameData game = result.games().stream()
-                .filter(g -> g.gameID() == gameId)
+                .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
             String gameView = getGameView(game, ViewEnum.OBSERVE, false);
-            return String.format("You are now observing game %d\n%s", gameId, gameView);
+            return String.format("You are now observing game %d\n%s", oldGameId, gameView);
         }
         throw new Exception("Expected: <GAME_ID>");
     }
