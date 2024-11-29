@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.util.Map;
@@ -129,5 +130,21 @@ public class ServerFacade {
 
     private boolean isSuccessful(int status) {
         return status / 100 == 2;
+    }
+
+
+    //WEBSOCKET COMMANDS
+    private WebSocketServer webSocketServer;
+
+    public void startWebSocketServer(int port) {
+        webSocketServer = new WebSocketServer(new InetSocketAddress(port));
+        webSocketServer.createWebSocketFactory().register("/ws", new WebSocketHandlerImpl());
+        webSocketServer.start();
+    }
+
+    public void stopWebSocketServer() {
+        if (webSocketServer != null) {
+            webSocketServer.stop();
+        }
     }
 }
