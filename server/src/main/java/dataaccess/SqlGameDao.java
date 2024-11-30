@@ -92,6 +92,15 @@ public class SqlGameDao implements GameDao {
         return null;
     }
 
+    @Override
+    public void deleteGameById(Integer gameId) throws DataAccessException {
+        try {
+            executeUpdate("DELETE FROM GameData WHERE gameId = ?", gameId);
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
+    }
+
 
     @Override
     public void clear() throws DataAccessException {

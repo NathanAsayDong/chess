@@ -52,21 +52,25 @@ public class WebSocketHandler {
     }
 
     private void handleSocketMessage(Session session, UserGameCommand message) {
-        switch (message.getCommandType()) {
-            case CONNECT:
-                // handle connect
-                break;
-            case MAKE_MOVE:
-                // handle make move
-                break;
-            case LEAVE:
-                // handle leave
-                break;
-            case RESIGN:
-                // handle resign
-                break;
-            default:
-                System.err.println("Unknown command type: " + message.getCommandType());
+        try {
+            switch (message.getCommandType()) {
+                case CONNECT:
+                    // handle connect
+                    break;
+                case MAKE_MOVE:
+                    makeMove(session, message);
+                    break;
+                case LEAVE:
+                    leaveGame(session, message);
+                    break;
+                case RESIGN:
+                    resignGame(session, message);
+                    break;
+                default:
+                    System.err.println("Unknown command type: " + message.getCommandType());
+            }
+        } catch (Exception ex) {
+            System.err.println("Error handling message: " + ex.getMessage());
         }
     }
 
@@ -80,6 +84,26 @@ public class WebSocketHandler {
             chessService.makeMove(game, user, message.getMove());
         } catch (Exception ex) {
             System.err.println("Error making move: " + ex.getMessage());
+        }
+    }
+
+    private void leaveGame(Session session, UserGameCommand message) {
+        try {
+            GameData game = chessService.getGameById(message.getGameID());
+            UserData user = userService.getUserDataByToken(message.getAuthToken());
+            chessService.removePlayerFromGame(game, user);
+        } catch (Exception ex) {
+            System.err.println("Error leaving game: " + ex.getMessage());
+        }
+    }
+
+    private void resignGame(Session session, UserGameCommand message) {
+        try {
+            GameData game = chessService.getGameById(message.getGameID());
+            UserData user = userService.getUserDataByToken(message.getAuthToken());
+            chessService.playerQuitsGame(game, user);
+        } catch (Exception ex) {
+            System.err.println("Error resigning game: " + ex.getMessage());
         }
     }
 }

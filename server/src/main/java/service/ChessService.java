@@ -68,5 +68,26 @@ public class ChessService {
         gameDao.updateGame(game);
     }
 
+    public void removePlayerFromGame(GameData game, UserData user) throws Exception {
+        try {
+            if (game.whiteUsername().equals(user.username())) {
+                GameData updatedGame = new GameData(game.gameID(), null, game.blackUsername(), game.gameName(), game.game());
+                gameDao.updateGame(updatedGame);
+            } else if (game.blackUsername().equals(user.username())) {
+                GameData updatedGame = new GameData(game.gameID(), game.whiteUsername(), null, game.gameName(), game.game());
+                gameDao.updateGame(updatedGame);
+            }
+        } catch (Exception e) {
+            throw new Exception("Error: could not remove player from game");
+        }
+    }
+
+    public void playerQuitsGame(GameData game, UserData user) throws Exception {
+        try {
+            gameDao.deleteGameById(game.gameID());
+        } catch (Exception e) {
+            throw new Exception("Error: could not remove player from game");
+        }
+    }
 
 }

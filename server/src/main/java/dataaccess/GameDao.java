@@ -19,5 +19,7 @@ public interface GameDao {
 
     public GameData getGameById(Integer gameId) throws DataAccessException;
 
+    public void deleteGameById(Integer gameId) throws DataAccessException;
+
     public void clear() throws DataAccessException;
 }
