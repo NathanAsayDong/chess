@@ -1,27 +1,30 @@
 package websocket;
 
-import chess.ChessGame;
-import model.AuthData;
-import model.GameData;
-import model.UserData;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 
+import com.google.gson.Gson;
+
+import model.GameData;
+import model.UserData;
 import service.ChessService;
 import service.UserService;
-import spark.Session;
 import websocket.commands.UserGameCommand;
-
-import java.util.HashMap;
-import java.util.Map;
+import websocket.messages.ServerMessage;
+import static websocket.messages.ServerMessage.ServerMessageType.LOAD_GAME;
 
 public class WebSocketHandler {
 
-    private Map<String, Session> sessions = new HashMap<>();
-    private ChessService chessService;
-    private UserService userService;
+    private final Map<String, Session> sessions = new HashMap<>();
+    private final ChessService chessService;
+    private final UserService userService;
+    private final Gson gson = new Gson();
 
     public WebSocketHandler(ChessService chessService, UserService userService) {
         this.chessService = chessService;
@@ -30,14 +33,17 @@ public class WebSocketHandler {
 
     @OnWebSocketConnect
     public void onConnect(Session session) {
-        System.out.println("WebSocket Client connected: " + session.id());
-        sessions.put(session.id(), session);
+        System.out.println("WebSocket Client connected: " + session.getRemoteAddress());
+        sessions.put(session.getRemoteAddress().toString(), session);
+        ServerMessage message = new ServerMessage(LOAD_GAME);
+        sendToClient(session, message);
     }
 
     @OnWebSocketClose
     public void onClose(Session session, int statusCode, String reason) {
-        System.out.println("WebSocket Client disconnected: " + session.id());
-        sessions.remove(session.id());
+        String sessionId = session.getRemoteAddress().toString();
+        System.out.println("WebSocket Client disconnected: " + sessionId);
+        sessions.remove(sessionId);
     }
 
     @OnWebSocketMessage
@@ -104,6 +110,20 @@ public class WebSocketHandler {
             chessService.playerQuitsGame(game, user);
         } catch (Exception ex) {
             System.err.println("Error resigning game: " + ex.getMessage());
+        }
+    }
+
+    private void sendToClient(Session session, ServerMessage message) {
+        try {
+            session.getRemote().sendString(gson.toJson(message));
+        } catch (Exception ex) {
+            System.err.println("Error sending message to client: " + ex.getMessage());
+        }
+    }
+    
+    private void broadcastToAll(ServerMessage message) {
+        for (Session session : sessions.values()) {
+            sendToClient(session, message);
         }
     }
 }
