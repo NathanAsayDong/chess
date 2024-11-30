@@ -140,7 +140,7 @@ public class ServerFacade {
 
     //WEBSOCKET
     public void connectToWebSocket() throws Exception {
-        String wsUri = serverUrl.replace("http", "ws") + "/connect";
+        String wsUri = serverUrl.replace("http", "ws") + "/wb";
         HttpClient client = HttpClient.newHttpClient();
         
         CompletableFuture<WebSocket> ws = client.newWebSocketBuilder()
