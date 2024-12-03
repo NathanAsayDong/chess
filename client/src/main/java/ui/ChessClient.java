@@ -46,6 +46,8 @@ public class ChessClient {
                 case "clear" -> clear();
                 case "highlight" -> highlightLegalMoves(params);
                 case "move" -> makeMove(params);
+                case "leave" -> leaveGame();
+                case "resign" -> resignGame();
                 case "quit" -> "quit";
                 default -> help();
             };
@@ -88,6 +90,8 @@ public class ChessClient {
         authToken = null;
         state = StateEnum.SIGNEDOUT;
         currentUser = null;
+        currentTeam = null;
+        currentGame = null;
         return "You have been logged out.";
     }
 
@@ -153,6 +157,7 @@ public class ChessClient {
             String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
             currentGameId = gameId;
+            currentTeam = teamColor;
             return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -336,12 +341,41 @@ public class ChessClient {
         return "";
     }
 
+    public String leaveGame() {
+        websocket.leave(authToken, currentGameId);
+        currentGame = null;
+        currentTeam = null;
+        currentGameId = null;
+        state = StateEnum.SIGNEDIN;
+        return "You have left the game.";
+    }
+
+    public String resignGame() {
+        websocket.resign(authToken, currentGameId);
+        currentGame = null;
+        currentTeam = null;
+        currentGameId = null;
+        state = StateEnum.SIGNEDIN;
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Are you sure you want to resign? (y/n): ");
+        String response = scanner.nextLine().trim().toLowerCase();
+        if (response.equals("y")) {
+            websocket.resign(authToken, currentGameId);
+            currentGame = null;
+            currentTeam = null;
+            currentGameId = null;
+            state = StateEnum.SIGNEDIN;
+            return "You have resigned from the game.";
+        } else {
+            return "Resignation cancelled.";
+        }
+    }
+
 
 
     //WEBSOCKET UPDATERS
     public void loadGame(GameData game) {
         this.currentGame = game;
-        this.currentTeam = game.game().getTeamTurn();
         drawBoardView(new StringBuilder(), game.game(), currentUser.username().equals(game.whiteUsername()), null);
     }
 
