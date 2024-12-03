@@ -1,5 +1,6 @@
 package ui;
 
+import chess.ChessGame;
 import chess.ChessMove;
 import com.google.gson.Gson;
 import model.AuthData;
@@ -47,18 +48,29 @@ public class ClientWebsocketHandler extends Endpoint {
     }
 
 
-    public void connect(AuthData authData, Integer gameId) {
+    public void connect(String authToken, Integer gameId, ChessGame.TeamColor teamColor) throws Exception {
         try {
-            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authData.authToken(), gameId);
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameId);
+            command.addTeamColor(teamColor);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            System.out.println(EscapeSequences.SET_TEXT_COLOR_RED + "Error connecting to websocket" + EscapeSequences.RESET_TEXT_COLOR);
+            throw new Exception("Unable to connect to websocket");
+        }
+    }
+
+    public void observe(String authToken, Integer gameId) {
+        try {
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void makeMove(AuthData authData, Integer gameId, ChessMove move) {
+    public void makeMove(String authToken, Integer gameId, ChessMove move) {
         try {
-            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, authData.authToken(), gameId);
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, authToken, gameId);
             command.addMove(move);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
@@ -66,18 +78,18 @@ public class ClientWebsocketHandler extends Endpoint {
         }
     }
 
-    public void leave(AuthData authData, Integer gameId) {
+    public void leave(String authToken, Integer gameId) {
         try {
-            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.LEAVE, authData.authToken(), gameId);
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.LEAVE, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void resign(AuthData authData, Integer gameId) {
+    public void resign(String authToken, Integer gameId) {
         try {
-            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.RESIGN, authData.authToken(), gameId);
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.RESIGN, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             ex.printStackTrace();

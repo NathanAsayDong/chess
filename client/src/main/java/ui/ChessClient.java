@@ -19,7 +19,8 @@ public class ChessClient {
     private final String serverUrl;
     private StateEnum state = StateEnum.SIGNEDOUT;
     private Map<Integer, Integer> gameIDMap = new HashMap<>();
-    private ChessGame currentGame = null;
+    private Integer currentGameId = null;
+    private GameData currentGame = null;
     private ChessGame.TeamColor currentTeam = null;
 
     public ChessClient(String serverUrl) {
@@ -138,7 +139,7 @@ public class ChessClient {
                 case "BLACK" -> ChessGame.TeamColor.BLACK;
                 default -> throw new Exception("Invalid team color. Use WHITE or BLACK");
             };
-            
+            websocket.connect(authToken, gameId, teamColor);
             server.joinGame(gameId, teamColor, authToken);
             ListGamesResult result = server.listGames(authToken);
             int finalGameId = gameId;
@@ -148,9 +149,6 @@ public class ChessClient {
                 .orElseThrow(() -> new Exception("Game not found"));
             String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
-            //connect to websocket
-//           websocketfacade.connect()
-
             return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -165,6 +163,7 @@ public class ChessClient {
             }
             int oldGameId = gameId;
             gameId = gameIDMap.get(gameId);
+            websocket.observe(authToken, gameId);
             ListGamesResult result = server.listGames(authToken);
             int finalGameId = gameId;
             GameData game = result.games().stream()
@@ -287,12 +286,13 @@ public class ChessClient {
 
     private String highlightLegalMoves(String... params) throws Exception {
         assertSignedIn();
+
         if (currentGame == null || currentTeam == null) {
             throw new Exception("No game or team selected.");
         }
 
         StringBuilder view = new StringBuilder();
-        ChessGame chessGame = currentGame;
+        ChessGame chessGame = currentGame.game();
 
         //given a position in the params, highlight all squares yellow that are valid for that piece
         int row = Integer.parseInt(params[0]);
@@ -328,7 +328,7 @@ public class ChessClient {
         ChessPosition endPosition = new ChessPosition(endRow, endCol);
 
         ChessMove move = new ChessMove(startPosition, endPosition, null);
-        currentGame.makeMove(move);
+        websocket.makeMove(authToken, currentGameId, move);
         return "";
     }
 
@@ -337,7 +337,7 @@ public class ChessClient {
     //WEBSOCKET UPDATERS
 
     public void loadGame(GameData game) {
-        this.currentGame = game.game();
+        this.currentGame = game;
         this.currentTeam = game.whiteUsername() != null ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
         //redraw board
     }
