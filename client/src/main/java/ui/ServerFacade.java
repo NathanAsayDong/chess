@@ -7,11 +7,11 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
+import chess.ChessMove;
 import com.google.gson.Gson;
 
 import chess.ChessGame;
@@ -19,15 +19,14 @@ import model.AuthData;
 import model.GameData;
 import model.ListGamesResult;
 import model.UserData;
+import websocket.commands.UserGameCommand;
+import websocket.messages.ServerMessage;
 
-public class ServerFacade {
+public class ServerFacade implements WebSocket.Listener {
     private final String serverUrl;
-    private WebSocket webSocket;
-    private final WebSocket.Listener wsListener;
 
-    public ServerFacade(String serverUrl, WebSocket.Listener wsListener) {
+    public ServerFacade(String serverUrl) {
         this.serverUrl = serverUrl;
-        this.wsListener = wsListener;
     }
 
     public void clear() throws Exception {
@@ -137,28 +136,5 @@ public class ServerFacade {
         return status / 100 == 2;
     }
 
-
-    //WEBSOCKET
-    public void connectToWebSocket() throws Exception {
-        String wsUri = serverUrl.replace("http", "ws") + "/wb";
-        HttpClient client = HttpClient.newHttpClient();
-        
-        CompletableFuture<WebSocket> ws = client.newWebSocketBuilder()
-            .buildAsync(URI.create(wsUri), wsListener);
-            
-        webSocket = ws.join();
-    }
-
-    public void disconnectWebSocket() {
-        if (webSocket != null) {
-            webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "Client disconnecting");
-        }
-    }
-
-    public void sendWebSocketMessage(String message) {
-        if (webSocket != null) {
-            webSocket.sendText(message, true);
-        }
-    }
 
 }

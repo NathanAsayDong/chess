@@ -1,23 +1,30 @@
 package ui;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import chess.ChessGame;
+import chess.ChessMove;
+import chess.ChessPiece;
+import chess.ChessPosition;
 import model.AuthData;
 import model.GameData;
 import model.ListGamesResult;
+import websocket.commands.UserGameCommand;
+import websocket.messages.ServerMessage;
 
 public class ChessClient {
     private String authToken = null;
     private final ServerFacade server;
+    private final ClientWebsocketHandler websocket;
     private final String serverUrl;
     private StateEnum state = StateEnum.SIGNEDOUT;
     private Map<Integer, Integer> gameIDMap = new HashMap<>();
+    private ChessGame currentGame = null;
+    private ChessGame.TeamColor currentTeam = null;
 
     public ChessClient(String serverUrl) {
         server = new ServerFacade(serverUrl);
+        websocket = new ClientWebsocketHandler(serverUrl);
         this.serverUrl = serverUrl;
     }
 
@@ -35,6 +42,8 @@ public class ChessClient {
                 case "play" -> playGame(params);
                 case "observe" -> observeGame(params);
                 case "clear" -> clear();
+                case "highlight" -> highlightLegalMoves(params);
+                case "move" -> makeMove(params);
                 case "quit" -> "quit";
                 default -> help();
             };
@@ -138,6 +147,10 @@ public class ChessClient {
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
             String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
+            state = StateEnum.INGAME;
+            //connect to websocket
+//           websocketfacade.connect()
+
             return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -181,6 +194,17 @@ public class ChessClient {
                 - quit
                 """;
         }
+        if (state == StateEnum.INGAME) {
+            return """
+                Available commands:
+                - redraw
+                - leave
+                - move <start row> <start col> <end row> <end col>
+                - resign
+                - highlight legal moves
+                - help
+                """;
+        }
         return """
             Available commands:
             - create <GAME_NAME>
@@ -207,13 +231,13 @@ public class ChessClient {
         // Draw handeling for white players
         if (viewType == ViewEnum.VIEW && isWhiteView) {
             view.append("WHITE's view:\n");
-            drawBoardView(view, chessGame, true);
+            drawBoardView(view, chessGame, true, null);
         }
 
         // Draw handeling for black players
         if (viewType == ViewEnum.VIEW && !isWhiteView) {
             view.append("BLACK's view:\n");
-            drawBoardView(view, chessGame, false);
+            drawBoardView(view, chessGame, false, null);
         }
         
         // Draw handeling for Observers
@@ -226,12 +250,15 @@ public class ChessClient {
         return view.toString();
     }
     
-    private void drawBoardView(StringBuilder view, ChessGame chessGame, boolean isWhiteView) {
+    private void drawBoardView(StringBuilder view, ChessGame chessGame, boolean isWhiteView, Collection<ChessMove> validMoves) {
         for (int row = isWhiteView ? 7 : 0; isWhiteView ? row >= 0 : row < 8; row += isWhiteView ? -1 : 1) {
             view.append(row + 1).append(" ");
             for (int col = isWhiteView ? 0 : 7; isWhiteView ? col < 8 : col >= 0; col += isWhiteView ? 1 : -1) {
-                var piece = chessGame.getBoard().getPiece(new chess.ChessPosition(row + 1, col + 1));
-                if ((row + col) % 2 == 0) {
+                ChessPosition position = new ChessPosition(row + 1, col + 1);
+                var piece = chessGame.getBoard().getPiece(position);
+                if (validMoves.stream().anyMatch(move -> move.getEndPosition().equals(position))) {
+                    view.append(EscapeSequences.SET_BG_COLOR_YELLOW);
+                } else if ((row + col) % 2 == 0) {
                     view.append(EscapeSequences.SET_BG_COLOR_LIGHT_GREY);
                 } else {
                     view.append(EscapeSequences.SET_BG_COLOR_DARK_GREY);
@@ -245,7 +272,65 @@ public class ChessClient {
             }
             view.append("\n");
         }
-        
+
         view.append(isWhiteView ? "  a  b  c  d  e  f  g  h" : "  h  g  f  e  d  c  b  a");
     }
+
+
+
+
+
+
+
+
+
+
+    private String highlightLegalMoves(String... params) throws Exception {
+        assertSignedIn();
+        if (currentGame == null || currentTeam == null) {
+            throw new Exception("No game or team selected.");
+        }
+
+        StringBuilder view = new StringBuilder();
+        ChessGame chessGame = currentGame;
+
+        //given a position in the params, highlight all squares yellow that are valid for that piece
+        int row = Integer.parseInt(params[0]);
+        int col = Integer.parseInt(params[1]);
+
+        ChessPosition position = new ChessPosition(row, col);
+        ChessPiece piece = chessGame.getBoard().getPiece(position);
+        if (piece == null) {
+            throw new Exception("No piece at that position.");
+        }
+
+        Collection<ChessMove> validMoves = chessGame.validMoves(position);
+        drawBoardView(view, chessGame, currentTeam == ChessGame.TeamColor.WHITE, validMoves);
+        return "";
+    }
+
+    public String makeMove(String... params) throws Exception {
+        assertSignedIn();
+        if (currentGame == null || currentTeam == null) {
+            throw new Exception("No game or team selected.");
+        }
+
+        if (params.length < 4) {
+            throw new Exception("Expected: <start row> <start col> <end row> <end col>");
+        }
+
+        int startRow = Integer.parseInt(params[0]);
+        int startCol = Integer.parseInt(params[1]);
+        int endRow = Integer.parseInt(params[2]);
+        int endCol = Integer.parseInt(params[3]);
+
+        ChessPosition startPosition = new ChessPosition(startRow, startCol);
+        ChessPosition endPosition = new ChessPosition(endRow, endCol);
+
+        ChessMove move = new ChessMove(startPosition, endPosition, null);
+        currentGame.makeMove(move);
+        return "";
+    }
+
 }
+

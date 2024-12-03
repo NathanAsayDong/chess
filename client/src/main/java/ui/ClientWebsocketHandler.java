@@ -1,47 +1,86 @@
 package ui;
 
-
+import chess.ChessMove;
 import com.google.gson.Gson;
+import model.AuthData;
 import websocket.commands.UserGameCommand;
 
+import javax.management.Notification;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.WebSocket;
-import java.util.Map;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.ExecutionException;
+import javax.websocket.*;
 
-public class ClientWebsocketHandler {
-    private final String serverUrl;
-    private final WebSocket.Listener wsListener;
-    private WebSocket webSocket;
 
-    public ClientWebsocketHandler(String serverUrl, WebSocket.Listener wsListener) {
-        this.serverUrl = serverUrl;
-        this.wsListener = wsListener;
+public class ClientWebsocketHandler extends Endpoint {
+    Session session;
+    NotificationHandler notificationHandler;
+
+    public ClientWebsocketHandler(String serverUrl) {
+        try {
+            serverUrl = serverUrl.replace("http", "ws");
+            URI socketURI = new URI(serverUrl + "/ws");
+            this.notificationHandler = new NotificationHandler();
+
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            this.session = container.connectToServer(this, socketURI);
+
+            //set message handler
+            this.session.addMessageHandler(new MessageHandler.Whole<String>() {
+                @Override
+                public void onMessage(String message) {
+                    Notification notification = new Gson().fromJson(message, Notification.class);
+                    notificationHandler.notify(notification);
+                }
+            });
+        } catch (DeploymentException | IOException | URISyntaxException ex) {
+            ex.printStackTrace();
+        }
     }
 
-    public void connect(String authToken) {
-        var uri = URI.create(serverUrl + "/game");
-        var headers = Map.of("Authorization", authToken);
-        var client = HttpClient.newHttpClient();
-        this.webSocket = client.newWebSocketBuilder()
-                .buildAsync(uri, wsListener)
-                .join();
-    }
 
-    public void disconnect() {
-        this.webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "Client disconnecting");
-    }
-
-    public void sendCommand(UserGameCommand command) {
-        var gson = new Gson();
-        var json = gson.toJson(command);
-        this.webSocket.sendText(json, true);
+    @Override
+    public void onOpen(javax.websocket.Session session, EndpointConfig endpointConfig) {
+        System.out.println("Connected to server");
     }
 
 
-    public void joinGame(String authToken, int gameID) {
-        UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameID);
-        sendCommand(command);
+    public void connect(AuthData authData, Integer gameId) {
+        try {
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authData.authToken(), gameId);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
 
+    public void makeMove(AuthData authData, Integer gameId, ChessMove move) {
+        try {
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, authData.authToken(), gameId);
+            command.addMove(move);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void leave(AuthData authData, Integer gameId) {
+        try {
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.LEAVE, authData.authToken(), gameId);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void resign(AuthData authData, Integer gameId) {
+        try {
+            UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.RESIGN, authData.authToken(), gameId);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
 }
