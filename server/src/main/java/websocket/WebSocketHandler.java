@@ -23,7 +23,7 @@ import static websocket.messages.ServerMessage.ServerMessageType.LOAD_GAME;
 
 @WebSocket
 public class WebSocketHandler {
-    private final Map<Session, String> sessions = new ConcurrentHashMap<>();
+    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private final ChessService chessService;
     private final UserService userService;
     private final Gson gson = new Gson();
@@ -36,13 +36,13 @@ public class WebSocketHandler {
     @OnWebSocketConnect
     public void onConnect(Session session) {
         System.out.println("Connected: " + session.getRemoteAddress());
-        sessions.put(session, session.getRemoteAddress().toString());
+        sessions.put(session.getRemoteAddress().toString(), session);
     }
 
     @OnWebSocketClose
     public void onClose(Session session, int statusCode, String reason) {
         System.out.println("Closed: " + session.getRemoteAddress());
-        sessions.remove(session);
+        sessions.remove(session.getRemoteAddress().toString());
     }
 
     @OnWebSocketMessage
@@ -95,6 +95,9 @@ public class WebSocketHandler {
             if (game == null) {
                 throw new Exception("Error: game does not exist");
             }
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("You are now watching game " + game.gameID());
+            sendToClient(session, notification);
             ServerMessage response = new ServerMessage(LOAD_GAME);
             response.addGameData(game);
             sendToClient(session, response);
@@ -112,10 +115,13 @@ public class WebSocketHandler {
                 throw new Exception("Error: game or user does not exist");
             }
             chessService.joinGame(message.getGameID(), message.getTeamColor(), user.username());
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + user.username() + " joined the game");
+            broadcastToAllButMe(session, notification);
             ServerMessage response = new ServerMessage(LOAD_GAME);
             game = chessService.getGameById(message.getGameID());
             response.addGameData(game);
-            sendToClient(session, response);
+            broadcastToAll(response);
         } catch (Exception ex) {
             sendErrorToClient(session, "error joining game: " + ex.getMessage());
         }
@@ -129,6 +135,9 @@ public class WebSocketHandler {
                 throw new Exception("Error: game or user does not exist");
             }
             game = chessService.makeMove(game, user, message.getMove());
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + user.username() + " made a move");
+            broadcastToAllButMe(session, notification);
             ServerMessage response = new ServerMessage(LOAD_GAME);
             response.addGameData(game);
             broadcastToAll(response);
@@ -144,6 +153,9 @@ public class WebSocketHandler {
             GameData game = chessService.getGameById(message.getGameID());
             UserData user = userService.getUserDataByToken(message.getAuthToken());
             chessService.removePlayerFromGame(game, user);
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + user.username() + " left the game");
+            broadcastToAllButMe(session, notification);
         } catch (Exception ex) {
             sendErrorToClient(session, "error leaving game: " + ex.getMessage());
         }
@@ -154,20 +166,26 @@ public class WebSocketHandler {
             GameData game = chessService.getGameById(message.getGameID());
             UserData user = userService.getUserDataByToken(message.getAuthToken());
             chessService.playerQuitsGame(game, user);
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + user.username() + " resigned the game");
+            broadcastToAllButMe(session, notification);
         } catch (Exception ex) {
             sendErrorToClient(session, "error resigning game: " + ex.getMessage());
         }
     }
 
 
-    private void broadcastToAll(ServerMessage message) {
-        String jsonMessage = gson.toJson(message);
-        sessions.keySet().forEach(session -> {
-            try {
-                session.getRemote().sendString(jsonMessage);
-            } catch (Exception e) {
-                System.err.println("Error broadcasting to " + session.getRemoteAddress() + ": " + e.getMessage());
+    private void broadcastToAllButMe(Session session, ServerMessage message) {
+        sessions.forEach((key, sesh) -> {
+            if (sesh != session) {
+                sendToClient(sesh, message);
             }
+        });
+    }
+
+    private void broadcastToAll(ServerMessage message) {
+        sessions.forEach((key, sesh) -> {
+            sendToClient(sesh, message);
         });
     }
 
