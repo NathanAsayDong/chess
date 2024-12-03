@@ -96,7 +96,7 @@ public class WebSocketHandler {
                 throw new Exception("Error: game does not exist");
             }
             ServerMessage response = new ServerMessage(LOAD_GAME);
-            response.addGame(game.game());
+            response.addGameData(game);
             sendToClient(session, response);
         } catch (Exception ex) {
             sendErrorToClient(session, "error observing game: " + ex.getMessage());
@@ -114,7 +114,7 @@ public class WebSocketHandler {
             chessService.joinGame(message.getGameID(), message.getTeamColor(), user.username());
             ServerMessage response = new ServerMessage(LOAD_GAME);
             game = chessService.getGameById(message.getGameID());
-            response.addGame(game.game());
+            response.addGameData(game);
             sendToClient(session, response);
         } catch (Exception ex) {
             sendErrorToClient(session, "error joining game: " + ex.getMessage());
@@ -130,7 +130,7 @@ public class WebSocketHandler {
             }
             game = chessService.makeMove(game, user, message.getMove());
             ServerMessage response = new ServerMessage(LOAD_GAME);
-            response.addGame(game.game());
+            response.addGameData(game);
             broadcastToAll(response);
         } catch (Exception ex) {
             ServerMessage response = new ServerMessage(ERROR);

@@ -69,6 +69,11 @@ public class MemoryUserDao implements UserDao {
             throw new DataAccessException("Error accessing database");
         }
     }
+
+    @Override
+    public UserData getUserDataByToken(String token) throws DataAccessException {
+        return null;
+    }
 }
 
 
