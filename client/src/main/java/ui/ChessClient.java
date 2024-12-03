@@ -22,6 +22,7 @@ public class ChessClient {
     private Integer currentGameId = null;
     private GameData currentGame = null;
     private ChessGame.TeamColor currentTeam = null;
+    private AuthData currentUser = null;
 
     public ChessClient(String serverUrl) {
         server = new ServerFacade(serverUrl);
@@ -74,6 +75,7 @@ public class ChessClient {
             
             AuthData auth = server.login(username, password);
             authToken = auth.authToken();
+            currentUser = auth;
             state = StateEnum.SIGNEDIN;
             return String.format("You logged in as %s.", username);
         }
@@ -85,6 +87,7 @@ public class ChessClient {
         server.logout(authToken);
         authToken = null;
         state = StateEnum.SIGNEDOUT;
+        currentUser = null;
         return "You have been logged out.";
     }
 
@@ -149,6 +152,7 @@ public class ChessClient {
                 .orElseThrow(() -> new Exception("Game not found"));
             String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
+            currentGameId = gameId;
             return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
@@ -335,11 +339,10 @@ public class ChessClient {
 
 
     //WEBSOCKET UPDATERS
-
     public void loadGame(GameData game) {
         this.currentGame = game;
-        this.currentTeam = game.whiteUsername() != null ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
-        //redraw board
+        this.currentTeam = game.game().getTeamTurn();
+        drawBoardView(new StringBuilder(), game.game(), currentUser.username().equals(game.whiteUsername()), null);
     }
 
     public void notification(String message) {
