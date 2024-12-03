@@ -18,11 +18,11 @@ public class ClientWebsocketHandler extends Endpoint {
     Session session;
     NotificationHandler notificationHandler;
 
-    public ClientWebsocketHandler(String serverUrl) {
+    public ClientWebsocketHandler(String serverUrl, ChessClient client) {
         try {
             serverUrl = serverUrl.replace("http", "ws");
             URI socketURI = new URI(serverUrl + "/ws");
-            this.notificationHandler = new NotificationHandler();
+            this.notificationHandler = new NotificationHandler(client);
 
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             this.session = container.connectToServer(this, socketURI);

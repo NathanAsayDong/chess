@@ -24,7 +24,7 @@ public class ChessClient {
 
     public ChessClient(String serverUrl) {
         server = new ServerFacade(serverUrl);
-        websocket = new ClientWebsocketHandler(serverUrl);
+        websocket = new ClientWebsocketHandler(serverUrl, this);
         this.serverUrl = serverUrl;
     }
 
@@ -331,6 +331,25 @@ public class ChessClient {
         currentGame.makeMove(move);
         return "";
     }
+
+
+
+    //WEBSOCKET UPDATERS
+
+    public void loadGame(GameData game) {
+        this.currentGame = game.game();
+        this.currentTeam = game.whiteUsername() != null ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
+        //redraw board
+    }
+
+    public void notification(String message) {
+        System.out.println(EscapeSequences.SET_TEXT_COLOR_BLUE + message + EscapeSequences.RESET_TEXT_COLOR);
+    }
+
+    public void errorMessage(String message) {
+        System.out.println(EscapeSequences.SET_TEXT_COLOR_RED + message + EscapeSequences.RESET_TEXT_COLOR);
+    }
+
 
 }
 

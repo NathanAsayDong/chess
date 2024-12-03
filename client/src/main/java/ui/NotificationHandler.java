@@ -7,6 +7,11 @@ import javax.management.Notification;
 
 public class NotificationHandler {
     private final Gson gson = new Gson();
+    private final ChessClient client;
+
+    public NotificationHandler(ChessClient client) {
+        this.client = client;
+    }
 
     void notify(Notification notification) {
         ServerMessage message = gson.fromJson(notification.getMessage(), ServerMessage.class);
@@ -14,13 +19,13 @@ public class NotificationHandler {
 
         switch (type) {
             case NOTIFICATION:
-                System.out.println(message.getNotificationMessage());
+                client.notification(message.getNotificationMessage());
                 break;
             case ERROR:
-                System.out.println(message.getErrorMessage());
+                client.errorMessage(message.getErrorMessage());
                 break;
             default:
-                //
+                client.loadGame(message.getGameData());
                 break;
         }
     }
