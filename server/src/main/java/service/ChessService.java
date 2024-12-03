@@ -63,9 +63,10 @@ public class ChessService {
         return gameDao.getGameById(gameID);
     }
 
-    public void makeMove(GameData game, UserData user, ChessMove move) throws Exception {
+    public GameData makeMove(GameData game, UserData user, ChessMove move) throws Exception {
         game.game().makeMove(move);
         gameDao.updateGame(game);
+        return game;
     }
 
     public void removePlayerFromGame(GameData game, UserData user) throws Exception {

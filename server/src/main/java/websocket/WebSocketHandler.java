@@ -17,6 +17,8 @@ import service.ChessService;
 import service.UserService;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ServerMessage;
+
+import static websocket.messages.ServerMessage.ServerMessageType.ERROR;
 import static websocket.messages.ServerMessage.ServerMessageType.LOAD_GAME;
 
 public class WebSocketHandler {
@@ -87,9 +89,14 @@ public class WebSocketHandler {
             if (game == null || user == null) {
                 throw new Exception("Error: game or user does not exist");
             }
-            chessService.makeMove(game, user, message.getMove());
+            game = chessService.makeMove(game, user, message.getMove());
+            ServerMessage response = new ServerMessage(LOAD_GAME);
+            response.addGame(game.game());
+            broadcastToAll(response);
         } catch (Exception ex) {
-            System.err.println("Error making move: " + ex.getMessage());
+            ServerMessage response = new ServerMessage(ERROR);
+            response.addErrorMessage(ex.getMessage());
+            sendToClient(session, response);
         }
     }
 
