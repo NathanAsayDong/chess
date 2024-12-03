@@ -39,12 +39,19 @@ public class MemoryGameDao implements GameDao {
         }
     }
 
-
     public GameData getGameById(Integer gameId) {
         try {
             return games.get(gameId);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public void deleteGameById(Integer gameId) throws DataAccessException {
+        try {
+            games.remove(gameId);
+        } catch (Exception e) {
+            throw new DataAccessException("Error accessing database");
         }
     }
 
