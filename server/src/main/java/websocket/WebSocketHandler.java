@@ -1,8 +1,13 @@
 package websocket;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import chess.ChessGame;
+import chess.ChessMove;
+import model.AuthData;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -18,19 +23,20 @@ import service.ChessService;
 import service.UserService;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ServerMessage;
-import static websocket.messages.ServerMessage.ServerMessageType.ERROR;
-import static websocket.messages.ServerMessage.ServerMessageType.LOAD_GAME;
+
+import static websocket.messages.ServerMessage.ServerMessageType.*;
 
 @WebSocket
 public class WebSocketHandler {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
-    private final ChessService chessService;
-    private final UserService userService;
+    private final Map<Session, Integer> gameSessions = new ConcurrentHashMap<>();
+    private ChessService chessService;
+    private UserService userService;
     private final Gson gson = new Gson();
 
     public WebSocketHandler(ChessService chessService, UserService userService) {
-        this.chessService = chessService;
-        this.userService = userService;
+        this.chessService = new ChessService(chessService.userDao, chessService.gameDao);
+        this.userService = new UserService(userService.userDao);
     }
 
     @OnWebSocketConnect
@@ -66,10 +72,11 @@ public class WebSocketHandler {
         try {
             switch (message.getCommandType()) {
                 case CONNECT:
-                    if (message.getTeamColor() == null) {
+                    ChessGame.TeamColor teamColor = getTeamColorFromAuth(message);
+                    if (teamColor == null) {
                         observeGame(session, message);
                     } else {
-                        joinGame(session, message);
+                        joinGame(session, message, teamColor);
                     }
                     break;
                 case MAKE_MOVE:
@@ -91,37 +98,39 @@ public class WebSocketHandler {
 
     private void observeGame(Session session, UserGameCommand message) throws Exception {
         try {
+            verifyAuth(message);
             GameData game = chessService.getGameById(message.getGameID());
             if (game == null) {
                 throw new Exception("Error: game does not exist");
             }
-            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("You are now watching game " + game.gameID());
-            sendToClient(session, notification);
+            gameSessions.put(session, game.gameID());
             ServerMessage response = new ServerMessage(LOAD_GAME);
             response.addGameData(game);
             sendToClient(session, response);
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + getAuth(message.getAuthToken()).username() + " is observing the game");
+            broadcastToAllButMe(session, notification, game.gameID());
         } catch (Exception ex) {
             sendErrorToClient(session, "error observing game: " + ex.getMessage());
         }
     }
 
 
-    private void joinGame(Session session, UserGameCommand message) throws Exception {
+    private void joinGame(Session session, UserGameCommand message, ChessGame.TeamColor teamColor) {
         try {
-            GameData game = chessService.getGameById(message.getGameID());
-            UserData user = userService.getUserDataByToken(message.getAuthToken());
-            if (game == null || user == null) {
-                throw new Exception("Error: game or user does not exist");
+            verifyAuth(message);
+            AuthData authData = getAuth(message.getAuthToken());
+            if (authData.username() == null) {
+                throw new Exception("Error: user not authenticated");
             }
-            chessService.joinGame(message.getGameID(), message.getTeamColor(), user.username());
-            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("Player " + user.username() + " joined the game");
-            broadcastToAllButMe(session, notification);
             ServerMessage response = new ServerMessage(LOAD_GAME);
-            game = chessService.getGameById(message.getGameID());
+            GameData game = chessService.getGameById(message.getGameID());
             response.addGameData(game);
-            broadcastToAll(response);
+            sendToClient(session, response);
+            gameSessions.put(session, game.gameID());
+            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+            notification.addNotificationMessage("Player " + authData.username() + " joined the game");
+            broadcastToAllButMe(session, notification, game.gameID());
         } catch (Exception ex) {
             sendErrorToClient(session, "error joining game: " + ex.getMessage());
         }
@@ -129,18 +138,22 @@ public class WebSocketHandler {
 
     private void makeMove(Session session, UserGameCommand message) throws Exception {
         try {
+            verifyAuth(message);
             GameData game = chessService.getGameById(message.getGameID());
-            UserData user = userService.getUserDataByToken(message.getAuthToken());
-            if (game == null || user == null) {
-                throw new Exception("Error: game or user does not exist");
-            }
-            game = chessService.makeMove(game, user, message.getMove());
+            AuthData authData = userService.getAuthByToken(message.getAuthToken());
+            ChessGame.TeamColor teamColor = getTeamColorFromAuth(message);
+
+            CheckGameStatus(game, teamColor);
+            CheckIfValidMove(game, message.getMove());
+            CheckIfItsPlayersTurn(game, teamColor);
+
+            GameData updateGame = chessService.makeMove(game, message.getMove());
             ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("Player " + user.username() + " made a move");
-            broadcastToAllButMe(session, notification);
+            notification.addNotificationMessage("Player " + authData.username() + " made a move");
+            broadcastToAllButMe(session, notification, updateGame.gameID());
             ServerMessage response = new ServerMessage(LOAD_GAME);
-            response.addGameData(game);
-            broadcastToAll(response);
+            response.addGameData(updateGame);
+            broadcastToAll(response, updateGame.gameID());
         } catch (Exception ex) {
             ServerMessage response = new ServerMessage(ERROR);
             response.addErrorMessage(ex.getMessage());
@@ -151,11 +164,14 @@ public class WebSocketHandler {
     private void leaveGame(Session session, UserGameCommand message) {
         try {
             GameData game = chessService.getGameById(message.getGameID());
-            UserData user = userService.getUserDataByToken(message.getAuthToken());
-            chessService.removePlayerFromGame(game, user);
+            AuthData user = userService.getAuthByToken(message.getAuthToken());
+            ChessGame.TeamColor teamColor = getTeamColorFromAuth(message);
+            chessService.removePlayerFromGame(game, teamColor);
             ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("Player " + user.username() + " left the game");
-            broadcastToAllButMe(session, notification);
+            notification.addNotificationMessage(user.username() + " left the game");
+            broadcastToAllButMe(session, notification, game.gameID());
+            sessions.remove(session.getRemoteAddress().toString());
+            gameSessions.remove(session);
         } catch (Exception ex) {
             sendErrorToClient(session, "error leaving game: " + ex.getMessage());
         }
@@ -163,29 +179,35 @@ public class WebSocketHandler {
 
     private void resignGame(Session session, UserGameCommand message) {
         try {
+            verifyAuth(message);
             GameData game = chessService.getGameById(message.getGameID());
-            UserData user = userService.getUserDataByToken(message.getAuthToken());
-            chessService.playerQuitsGame(game, user);
+            AuthData auth = userService.getAuthByToken(message.getAuthToken());
+            if (!Objects.equals(auth.username(), game.whiteUsername()) && !Objects.equals(auth.username(), game.blackUsername())) {
+                throw new Exception("Error: observer cannot resign the game");
+            }
+            chessService.playerQuitsGame(game);
             ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("Player " + user.username() + " resigned the game");
-            broadcastToAllButMe(session, notification);
+            notification.addNotificationMessage("Player " + auth.username() + " resigned the game");
+            broadcastToAll(notification, game.gameID());
         } catch (Exception ex) {
             sendErrorToClient(session, "error resigning game: " + ex.getMessage());
         }
     }
 
 
-    private void broadcastToAllButMe(Session session, ServerMessage message) {
+    private void broadcastToAllButMe(Session session, ServerMessage message, Integer gameID) {
         sessions.forEach((key, sesh) -> {
-            if (sesh != session) {
+            if (sesh != session && Objects.equals(gameSessions.get(sesh), gameID)) {
                 sendToClient(sesh, message);
             }
         });
     }
 
-    private void broadcastToAll(ServerMessage message) {
+    private void broadcastToAll(ServerMessage message, Integer gameID) {
         sessions.forEach((key, sesh) -> {
-            sendToClient(sesh, message);
+            if (Objects.equals(gameSessions.get(sesh), gameID)) {
+                sendToClient(sesh, message);
+            }
         });
     }
 
@@ -202,4 +224,69 @@ public class WebSocketHandler {
         message.addErrorMessage(errorMessage);
         sendToClient(session, message);
     }
+
+    private ChessGame.TeamColor getTeamColorFromAuth(UserGameCommand message) {
+        try {
+            AuthData auth = userService.getAuthByToken(message.getAuthToken());
+            if (auth.username() == null) {
+                throw new Exception("Error: user not authenticated");
+            }
+            GameData game = chessService.getGameById(message.getGameID());
+            if (game == null) {
+                throw new Exception("Error: game does not exist");
+            }
+            if (Objects.equals(game.whiteUsername(), auth.username())) {
+                return ChessGame.TeamColor.WHITE;
+            } else if (Objects.equals(game.blackUsername(), auth.username())) {
+                return ChessGame.TeamColor.BLACK;
+            }
+            return null;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private void verifyAuth(UserGameCommand message) throws Exception {
+        if (message.getAuthToken() == null) {
+            throw new Exception("Error: auth token cannot be null");
+        }
+        else if (userService.getAuthByToken(message.getAuthToken()).username() == null) {
+            throw new Exception("Error: user not authenticated");
+        }
+    }
+
+    private AuthData getAuth(String authToken) {
+        try {
+            return userService.getAuthByToken(authToken);
+        } catch (Exception e) {
+            return new AuthData(null, null);
+        }
+    }
+
+    private void CheckIfItsPlayersTurn(GameData game, ChessGame.TeamColor teamColor) throws Exception {
+        if (game.game().getTeamTurn() != teamColor) {
+            throw new Exception("Error: not your turn");
+        }
+    }
+
+    private void CheckIfValidMove(GameData game, ChessMove move) throws Exception {
+        Collection<ChessMove> moves = game.game().validMoves(move.getStartPosition());
+        if (!moves.contains(move)) {
+            throw new Exception("Error: invalid move");
+        }
+    }
+
+    private void CheckGameStatus(GameData game, ChessGame.TeamColor teamColor) throws Exception {
+        if (game.game().isInCheckmate(teamColor)) {
+            throw new Exception("Error: checkmate");
+        }
+        if (game.game().isInStalemate(teamColor)) {
+            ChessService.updateTeamTurn(game);
+            throw new Exception("Error: stalemate");
+        }
+        if (game.game().isInCheck(teamColor)) {
+            throw new Exception("Error: check");
+        }
+    }
+
 }

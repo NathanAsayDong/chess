@@ -8,7 +8,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.util.Objects;
 
 public class UserService {
-    UserDao userDao;
+    public UserDao userDao;
 
     public UserService(UserDao userDao) {
         this.userDao = userDao;
@@ -55,7 +55,6 @@ public class UserService {
     public UserData getUserDataByToken(String authToken) throws Exception {
         return userDao.getUserDataByToken(authToken);
     }
-
 
     //private helpers
     private boolean userNameTaken(UserData user) {

@@ -13,9 +13,9 @@ import java.util.Objects;
  */
 public class ServerMessage {
     ServerMessageType serverMessageType;
-    GameData gameData;
+    GameData game;
     String errorMessage;
-    String notificationMessage;
+    String message;
 
     public enum ServerMessageType {
         LOAD_GAME,
@@ -28,7 +28,7 @@ public class ServerMessage {
     }
 
     public void addGameData(GameData gameData) {
-        this.gameData = gameData;
+        this.game = gameData;
     }
 
     public void addErrorMessage(String errorMessage) {
@@ -36,7 +36,7 @@ public class ServerMessage {
     }
 
     public void addNotificationMessage(String notificationMessage) {
-        this.notificationMessage = notificationMessage;
+        this.message = notificationMessage;
     }
 
     public ServerMessageType getServerMessageType() {
@@ -44,7 +44,7 @@ public class ServerMessage {
     }
 
     public GameData getGameData() {
-        return this.gameData;
+        return this.game;
     }
 
     public String getErrorMessage() {
@@ -52,7 +52,7 @@ public class ServerMessage {
     }
 
     public String getNotificationMessage() {
-        return this.notificationMessage;
+        return this.message;
     }
 
     @Override

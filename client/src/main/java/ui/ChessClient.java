@@ -15,7 +15,7 @@ import websocket.messages.ServerMessage;
 public class ChessClient {
     private String authToken = null;
     private final ServerFacade server;
-    private final ClientWebsocketHandler websocket;
+    private  ClientWebsocketHandler websocket;
     private final String serverUrl;
     private StateEnum state = StateEnum.SIGNEDOUT;
     private Map<Integer, Integer> gameIDMap = new HashMap<>();
@@ -23,6 +23,7 @@ public class ChessClient {
     private GameData currentGame = null;
     private ChessGame.TeamColor currentTeam = null;
     private AuthData currentUser = null;
+    private ViewEnum currentView = ViewEnum.VIEW;
 
     public ChessClient(String serverUrl) {
         server = new ServerFacade(serverUrl);
@@ -46,6 +47,7 @@ public class ChessClient {
                 case "clear" -> clear();
                 case "highlight" -> highlightLegalMoves(params);
                 case "move" -> makeMove(params);
+                case "redraw" -> getGameView(currentGame, currentView, currentTeam == ChessGame.TeamColor.WHITE);
                 case "leave" -> leaveGame();
                 case "resign" -> resignGame();
                 case "quit" -> "quit";
@@ -146,15 +148,17 @@ public class ChessClient {
                 case "BLACK" -> ChessGame.TeamColor.BLACK;
                 default -> throw new Exception("Invalid team color. Use WHITE or BLACK");
             };
-            websocket.connect(authToken, gameId, teamColor);
             server.joinGame(gameId, teamColor, authToken);
+            websocket = new ClientWebsocketHandler(serverUrl, this);
+            websocket.connect(authToken, gameId, teamColor);
+            currentView = ViewEnum.VIEW;
             ListGamesResult result = server.listGames(authToken);
             int finalGameId = gameId;
             GameData game = result.games().stream()
                 .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, ViewEnum.OBSERVE, teamColor == ChessGame.TeamColor.WHITE);
+            String gameView = getGameView(game, currentView, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
             currentGameId = gameId;
             currentTeam = teamColor;
@@ -173,13 +177,14 @@ public class ChessClient {
             int oldGameId = gameId;
             gameId = gameIDMap.get(gameId);
             websocket.observe(authToken, gameId);
+            currentView = ViewEnum.OBSERVE;
             ListGamesResult result = server.listGames(authToken);
             int finalGameId = gameId;
             GameData game = result.games().stream()
                 .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, ViewEnum.OBSERVE, false);
+            String gameView = getGameView(game, currentView, false);
             return String.format("You are now observing game %d\n%s", oldGameId, gameView);
         }
         throw new Exception("Expected: <GAME_ID>");
@@ -239,20 +244,19 @@ public class ChessClient {
         // Draw handeling for white players
         if (viewType == ViewEnum.VIEW && isWhiteView) {
             view.append("WHITE's view:\n");
-            drawBoardView(view, chessGame, true, null);
+            drawBoardView(view, chessGame, true, new ArrayList<>());
         }
 
         // Draw handeling for black players
         if (viewType == ViewEnum.VIEW && !isWhiteView) {
             view.append("BLACK's view:\n");
-            drawBoardView(view, chessGame, false, null);
+            drawBoardView(view, chessGame, false, new ArrayList<>());
         }
         
         // Draw handeling for Observers
         if (viewType == ViewEnum.OBSERVE) {
+            view.append("OBSERVER's view:\n");
             view.append(getGameView(game, ViewEnum.VIEW, true));
-            view.append("\n\n");
-            view.append(getGameView(game, ViewEnum.VIEW, false));
         }
     
         return view.toString();
@@ -341,20 +345,23 @@ public class ChessClient {
         return "";
     }
 
-    public String leaveGame() {
-        websocket.leave(authToken, currentGameId);
+    public String leaveGame() throws Exception {
+        websocket.leave(authToken, currentGameId, currentTeam);
         currentGame = null;
         currentTeam = null;
         currentGameId = null;
         state = StateEnum.SIGNEDIN;
+        currentView = ViewEnum.VIEW;
+        this.updateLoadedGames();
         return "You have left the game.";
     }
 
-    public String resignGame() {
+    public String resignGame() throws Exception {
         websocket.resign(authToken, currentGameId);
         currentGame = null;
         currentTeam = null;
         currentGameId = null;
+        currentView = ViewEnum.VIEW;
         state = StateEnum.SIGNEDIN;
         Scanner scanner = new Scanner(System.in);
         System.out.print("Are you sure you want to resign? (y/n): ");
@@ -365,18 +372,24 @@ public class ChessClient {
             currentTeam = null;
             currentGameId = null;
             state = StateEnum.SIGNEDIN;
+            this.updateLoadedGames();
             return "You have resigned from the game.";
         } else {
             return "Resignation cancelled.";
         }
     }
 
-
+    private void updateLoadedGames() throws Exception {
+        ListGamesResult result = server.listGames(authToken);
+        for (int i = 0; i < result.games().size(); i++) {
+            gameIDMap.put(i + 1, result.games().get(i).gameID());
+        }
+    }
 
     //WEBSOCKET UPDATERS
     public void loadGame(GameData game) {
         this.currentGame = game;
-        drawBoardView(new StringBuilder(), game.game(), currentUser.username().equals(game.whiteUsername()), null);
+        drawBoardView(new StringBuilder(), game.game(), currentUser.username().equals(game.whiteUsername()), new ArrayList<>());
     }
 
     public void notification(String message) {

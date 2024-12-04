@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.UUID;
 
 public class ChessService {
-    public UserDao userDao;
-    public GameDao gameDao ;
+    public static UserDao userDao;
+    public static GameDao gameDao ;
 
     public ChessService(UserDao userDao, GameDao gameDao) {
-        this.userDao = userDao;
-        this.gameDao = gameDao;
+        ChessService.userDao = userDao;
+        ChessService.gameDao = gameDao;
     }
 
     public void clear() throws Exception {
@@ -63,31 +63,45 @@ public class ChessService {
         return gameDao.getGameById(gameID);
     }
 
-    public GameData makeMove(GameData game, UserData user, ChessMove move) throws Exception {
+    public GameData makeMove(GameData game, ChessMove move) throws Exception {
         game.game().makeMove(move);
         gameDao.updateGame(game);
         return game;
     }
 
-    public void removePlayerFromGame(GameData game, UserData user) throws Exception {
+    public void removePlayerFromGame(GameData game, ChessGame.TeamColor teamColor) throws Exception {
         try {
-            if (game.whiteUsername().equals(user.username())) {
-                GameData updatedGame = new GameData(game.gameID(), null, game.blackUsername(), game.gameName(), game.game());
-                gameDao.updateGame(updatedGame);
-            } else if (game.blackUsername().equals(user.username())) {
-                GameData updatedGame = new GameData(game.gameID(), game.whiteUsername(), null, game.gameName(), game.game());
-                gameDao.updateGame(updatedGame);
+            GameData updatedGame;
+            if (teamColor == ChessGame.TeamColor.WHITE) {
+                updatedGame = new GameData(game.gameID(), null, game.blackUsername(), game.gameName(), game.game());
+            } else {
+                updatedGame = new GameData(game.gameID(), game.whiteUsername(), null, game.gameName(), game.game());
             }
+            gameDao.updateGame(updatedGame);
         } catch (Exception e) {
             throw new Exception("Error: could not remove player from game");
         }
     }
 
-    public void playerQuitsGame(GameData game, UserData user) throws Exception {
+    public void playerQuitsGame(GameData game) throws Exception {
         try {
             gameDao.deleteGameById(game.gameID());
         } catch (Exception e) {
             throw new Exception("Error: could not remove player from game");
+        }
+    }
+
+    public static void updateTeamTurn(GameData game) throws Exception {
+        try {
+            if (game.game().getTeamTurn() == ChessGame.TeamColor.WHITE) {
+                game.game().setTeamTurn(ChessGame.TeamColor.BLACK);
+            } else {
+                game.game().setTeamTurn(ChessGame.TeamColor.WHITE);
+            }
+            GameData updatedGame = new GameData(game.gameID(), game.whiteUsername(), game.blackUsername(), game.gameName(), game.game());
+            gameDao.updateGame(updatedGame);
+        } catch (Exception e) {
+            throw new Exception("Error: could not update team turn");
         }
     }
 

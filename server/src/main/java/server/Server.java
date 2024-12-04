@@ -54,6 +54,7 @@ public class Server {
         Spark.port(desiredPort);
 
         Spark.staticFiles.location("web");
+        Spark.webSocket("/ws", webSocketHandler);
 
         Spark.post("/user", this::registerUser);
         Spark.post("/session", this::loginUser);
@@ -65,7 +66,6 @@ public class Server {
 
         Spark.delete("/db", this::clearApplication);
 
-        Spark.webSocket("/wb", webSocketHandler);
         Spark.init();
 
         Spark.awaitInitialization();

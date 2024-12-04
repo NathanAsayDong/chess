@@ -41,7 +41,6 @@ public class ClientWebsocketHandler extends Endpoint {
         }
     }
 
-
     @Override
     public void onOpen(javax.websocket.Session session, EndpointConfig endpointConfig) {
         System.out.println("Connected to server");
@@ -51,7 +50,6 @@ public class ClientWebsocketHandler extends Endpoint {
     public void connect(String authToken, Integer gameId, ChessGame.TeamColor teamColor) throws Exception {
         try {
             UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameId);
-            command.addTeamColor(teamColor);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             System.out.println(EscapeSequences.SET_TEXT_COLOR_RED + "Error connecting to websocket" + EscapeSequences.RESET_TEXT_COLOR);
@@ -78,7 +76,7 @@ public class ClientWebsocketHandler extends Endpoint {
         }
     }
 
-    public void leave(String authToken, Integer gameId) {
+    public void leave(String authToken, Integer gameId, ChessGame.TeamColor teamColor) {
         try {
             UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.LEAVE, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
