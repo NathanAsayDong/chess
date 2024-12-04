@@ -5,6 +5,7 @@ import chess.ChessMove;
 import com.google.gson.Gson;
 import model.AuthData;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ServerMessage;
 
 import javax.management.Notification;
 import java.net.URI;
@@ -32,7 +33,7 @@ public class ClientWebsocketHandler extends Endpoint {
             this.session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(String message) {
-                    Notification notification = new Gson().fromJson(message, Notification.class);
+                    ServerMessage notification = new Gson().fromJson(message, ServerMessage.class);
                     notificationHandler.notify(notification);
                 }
             });

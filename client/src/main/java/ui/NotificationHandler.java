@@ -13,8 +13,7 @@ public class NotificationHandler {
         this.client = client;
     }
 
-    void notify(Notification notification) {
-        ServerMessage message = gson.fromJson(notification.getMessage(), ServerMessage.class);
+    void notify(ServerMessage message) {
         ServerMessage.ServerMessageType type = message.getServerMessageType();
 
         switch (type) {

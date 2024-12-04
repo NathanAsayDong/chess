@@ -158,11 +158,13 @@ public class ChessClient {
                 .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, currentView, teamColor == ChessGame.TeamColor.WHITE);
+//            String gameView = getGameView(game, currentView, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
             currentGameId = gameId;
             currentTeam = teamColor;
-            return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
+            currentGame = game;
+            return String.format("You joined game %d as %s", oldGameId, color);
+//            return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
     }
@@ -210,11 +212,11 @@ public class ChessClient {
         if (state == StateEnum.INGAME) {
             return """
                 Available commands:
+                - move <start row> <start col> <end row> <end col>
+                - highlight <start row> <start col> (shows legal moves for given piece)
                 - redraw
                 - leave
-                - move <start row> <start col> <end row> <end col>
                 - resign
-                - highlight legal moves
                 - help
                 """;
         }
@@ -240,22 +242,26 @@ public class ChessClient {
     private String getGameView(GameData game, ViewEnum viewType, boolean isWhiteView) {
         ChessGame chessGame = game.game();
         StringBuilder view = new StringBuilder();
+
+        if (currentGame == null) {
+            this.currentGame = game;
+        }
     
         // Draw handeling for white players
         if (viewType == ViewEnum.VIEW && isWhiteView) {
-            view.append("WHITE's view:\n");
+            view.append("WHITE's view: (Team Turn :" + this.currentGame.game().getTeamTurn().toString() + ")\n");
             drawBoardView(view, chessGame, true, new ArrayList<>());
         }
 
         // Draw handeling for black players
         if (viewType == ViewEnum.VIEW && !isWhiteView) {
-            view.append("BLACK's view:\n");
+            view.append("BLACK's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
             drawBoardView(view, chessGame, false, new ArrayList<>());
         }
         
         // Draw handeling for Observers
         if (viewType == ViewEnum.OBSERVE) {
-            view.append("OBSERVER's view:\n");
+            view.append("OBSERVER's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
             view.append(getGameView(game, ViewEnum.VIEW, true));
         }
     
@@ -304,22 +310,28 @@ public class ChessClient {
             throw new Exception("No game or team selected.");
         }
 
+        if (params.length < 2) {
+            throw new Exception("Expected: <row> <col>");
+        }
+
         StringBuilder view = new StringBuilder();
         ChessGame chessGame = currentGame.game();
 
-        //given a position in the params, highlight all squares yellow that are valid for that piece
         int row = Integer.parseInt(params[0]);
-        int col = Integer.parseInt(params[1]);
+        int col = convertColumnLetterToNumber(params[1]);
 
         ChessPosition position = new ChessPosition(row, col);
         ChessPiece piece = chessGame.getBoard().getPiece(position);
-        if (piece == null) {
+        if (piece.getPieceType() == null) {
             throw new Exception("No piece at that position.");
+        }
+        if (piece.getTeamColor() != currentTeam) {
+            throw new Exception("You can only highlight moves for your own pieces.");
         }
 
         Collection<ChessMove> validMoves = chessGame.validMoves(position);
         drawBoardView(view, chessGame, currentTeam == ChessGame.TeamColor.WHITE, validMoves);
-        return "";
+        return view.toString();
     }
 
     public String makeMove(String... params) throws Exception {
@@ -333,9 +345,9 @@ public class ChessClient {
         }
 
         int startRow = Integer.parseInt(params[0]);
-        int startCol = Integer.parseInt(params[1]);
+        int startCol = convertColumnLetterToNumber(params[1]);
         int endRow = Integer.parseInt(params[2]);
-        int endCol = Integer.parseInt(params[3]);
+        int endCol = convertColumnLetterToNumber(params[3]);
 
         ChessPosition startPosition = new ChessPosition(startRow, startCol);
         ChessPosition endPosition = new ChessPosition(endRow, endCol);
@@ -346,6 +358,10 @@ public class ChessClient {
     }
 
     public String leaveGame() throws Exception {
+        if (currentGame == null) {
+            throw new Exception("You are not currently in a game.");
+        }
+
         websocket.leave(authToken, currentGameId, currentTeam);
         currentGame = null;
         currentTeam = null;
@@ -386,10 +402,25 @@ public class ChessClient {
         }
     }
 
+    private Integer convertColumnLetterToNumber(String col) throws Exception {
+        return switch (col) {
+            case "a" -> 1;
+            case "b" -> 2;
+            case "c" -> 3;
+            case "d" -> 4;
+            case "e" -> 5;
+            case "f" -> 6;
+            case "g" -> 7;
+            case "h" -> 8;
+            default -> throw new Exception("Invalid column letter.");
+        };
+    }
+
     //WEBSOCKET UPDATERS
     public void loadGame(GameData game) {
         this.currentGame = game;
-        drawBoardView(new StringBuilder(), game.game(), currentUser.username().equals(game.whiteUsername()), new ArrayList<>());
+        System.out.println("\n");
+        System.out.println(getGameView(game, currentView, currentTeam == ChessGame.TeamColor.WHITE));
     }
 
     public void notification(String message) {
