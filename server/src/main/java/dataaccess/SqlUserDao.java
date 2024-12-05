@@ -28,9 +28,9 @@ public class SqlUserDao implements UserDao {
             String authToken = UUID.randomUUID().toString();
             String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
             String userDataStatement = String.format("INSERT INTO %s (username, email, password) VALUES (?, ?, ?)", USERDATATABLE);
-            executeUpdate(userDataStatement, user.username(), user.email(), hashedPassword);
+            userExecuteUpdate(userDataStatement, user.username(), user.email(), hashedPassword);
             String userAuthStatement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", USERAUTHTABLE);
-            executeUpdate(userAuthStatement, authToken, user.username());
+            userExecuteUpdate(userAuthStatement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
@@ -42,7 +42,7 @@ public class SqlUserDao implements UserDao {
         try {
             String authToken = UUID.randomUUID().toString();
             String statement = String.format("INSERT INTO %s (authToken, username) VALUES (?, ?)", USERAUTHTABLE);
-            executeUpdate(statement, authToken, user.username());
+            userExecuteUpdate(statement, authToken, user.username());
             return new AuthData(authToken, user.username());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
@@ -53,7 +53,7 @@ public class SqlUserDao implements UserDao {
     public void logout(AuthData authData) throws DataAccessException {
         try {
             String statement = String.format("DELETE FROM %s WHERE authToken = ?", USERAUTHTABLE);
-            executeUpdate(statement, authData.authToken());
+            userExecuteUpdate(statement, authData.authToken());
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
@@ -120,14 +120,14 @@ public class SqlUserDao implements UserDao {
     @Override
     public void clear() throws DataAccessException {
         try {
-            executeUpdate("DELETE FROM UserData");
-            executeUpdate("DELETE FROM UserAuth");
+            userExecuteUpdate("DELETE FROM UserData");
+            userExecuteUpdate("DELETE FROM UserAuth");
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
     }
 
-    private int executeUpdate(String statement, Object... params) throws DataAccessException {
+    private int userExecuteUpdate(String statement, Object... params) throws DataAccessException {
         try {
             SqlExecuteUpdate update = new SqlExecuteUpdate();
             return update.executeUpdate(statement, params);

@@ -142,9 +142,9 @@ public class WebSocketHandler {
             AuthData authData = userService.getAuthByToken(message.getAuthToken());
             ChessGame.TeamColor teamColor = getTeamColorFromAuth(message);
 
-            CheckGameEnded(game, teamColor);
-            CheckIfValidMove(game, message.getMove());
-            CheckIfItsPlayersTurn(game, teamColor);
+            checkGameEnded(game, teamColor);
+            checkIfValidMove(game, message.getMove());
+            checkIfItsPlayersTurn(game, teamColor);
 
             GameData updateGame = chessService.makeMove(game, message.getMove());
             ChessGame.TeamColor opponentColor = teamColor == ChessGame.TeamColor.WHITE ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
@@ -158,7 +158,7 @@ public class WebSocketHandler {
                 notification.addNotificationMessage(opponentColor + " is in checkmate. " + authData.username() + " wins!");
                 broadcastToAllButMe(session, notification, updateGame.gameID());
             }
-            else if (CheckIfMovePutsGameInStalemate(updateGame, opponentColor)) {
+            else if (checkIfMovePutsGameInStalemate(updateGame, opponentColor)) {
                 ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
                 notification.addNotificationMessage("Game is in stalemate. Game is now over.");
                 broadcastToAllButMe(session, notification, updateGame.gameID());
@@ -280,29 +280,29 @@ public class WebSocketHandler {
         }
     }
 
-    private void CheckIfItsPlayersTurn(GameData game, ChessGame.TeamColor teamColor) throws Exception {
+    private void checkIfItsPlayersTurn(GameData game, ChessGame.TeamColor teamColor) throws Exception {
         if (game.game().getTeamTurn() != teamColor) {
             throw new Exception("Error: not your turn");
         }
     }
 
-    private void CheckIfValidMove(GameData game, ChessMove move) throws Exception {
+    private void checkIfValidMove(GameData game, ChessMove move) throws Exception {
         Collection<ChessMove> moves = game.game().validMoves(move.getStartPosition());
         if (!moves.contains(move)) {
             throw new Exception("Error: invalid move");
         }
     }
 
-    private void CheckGameEnded(GameData game, ChessGame.TeamColor teamColor) throws Exception {
+    private void checkGameEnded(GameData game, ChessGame.TeamColor teamColor) throws Exception {
         if (game.game().isInCheckmate(teamColor)) {
             throw new Exception("Error: Game has concluded");
         }
-        if (CheckIfMovePutsGameInStalemate(game, teamColor)) {
+        if (checkIfMovePutsGameInStalemate(game, teamColor)) {
             throw new Exception("Error: Game has concluded");
         }
     }
 
-    private boolean CheckIfMovePutsGameInStalemate(GameData game, ChessGame.TeamColor teamColor) {
+    private boolean checkIfMovePutsGameInStalemate(GameData game, ChessGame.TeamColor teamColor) {
         return game.game().isInStalemate(teamColor);
     }
 

@@ -48,7 +48,9 @@ public class ChessClient {
                 return "You must sign in first.";
             }
             else if (this.state == StateEnum.INGAME) {
-                if (cmd.equals("move") || cmd.equals("highlight") || cmd.equals("redraw") || cmd.equals("leave") || cmd.equals("resign") || cmd.equals("help")) {
+                if (cmd.equals("move") || cmd.equals("highlight") ||
+                        cmd.equals("redraw") || cmd.equals("leave") ||
+                        cmd.equals("resign") || cmd.equals("help")) {
                     return switch (cmd) {
                         case "move" -> makeMove(params);
                         case "highlight" -> highlightLegalMoves(params);
@@ -62,7 +64,10 @@ public class ChessClient {
                 return "Invalid command.";
             }
             else {
-                if (cmd.equals("register") || cmd.equals("login") || cmd.equals("logout") || cmd.equals("create") || cmd.equals("list") || cmd.equals("play") || cmd.equals("observe") || cmd.equals("clear") || cmd.equals("quit") || cmd.equals("help")) {
+                if (cmd.equals("register") || cmd.equals("login") ||
+                        cmd.equals("logout") || cmd.equals("create") ||
+                        cmd.equals("list") || cmd.equals("play") || cmd.equals("observe") ||
+                        cmd.equals("clear") || cmd.equals("quit") || cmd.equals("help")) {
                     return switch (cmd) {
                         case "logout" -> logout();
                         case "create" -> createGame(params);
@@ -125,9 +130,9 @@ public class ChessClient {
             var response = server.createGame(gameName, authToken);
             Double gameIdDouble = (Double) response.get("gameID");
             int gameId = gameIdDouble.intValue();
-            int map_size = gameIDMap.size() + 1;
-            gameIDMap.put(map_size, gameId);
-            return String.format("Created game %s with ID: %d", gameName, map_size);
+            int mapSize = gameIDMap.size() + 1;
+            gameIDMap.put(mapSize, gameId);
+            return String.format("Created game %s with ID: %d", gameName, mapSize);
         }
         throw new Exception("Expected: <GAME_NAME>");
     }

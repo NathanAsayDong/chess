@@ -91,18 +91,4 @@ public class ChessService {
         }
     }
 
-    public static void updateTeamTurn(GameData game) throws Exception {
-        try {
-            if (game.game().getTeamTurn() == ChessGame.TeamColor.WHITE) {
-                game.game().setTeamTurn(ChessGame.TeamColor.BLACK);
-            } else {
-                game.game().setTeamTurn(ChessGame.TeamColor.WHITE);
-            }
-            GameData updatedGame = new GameData(game.gameID(), game.whiteUsername(), game.blackUsername(), game.gameName(), game.game());
-            gameDao.updateGame(updatedGame);
-        } catch (Exception e) {
-            throw new Exception("Error: could not update team turn");
-        }
-    }
-
 }
