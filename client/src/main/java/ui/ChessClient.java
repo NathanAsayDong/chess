@@ -24,11 +24,13 @@ public class ChessClient {
     private ChessGame.TeamColor currentTeam = null;
     private AuthData currentUser = null;
     private ViewEnum currentView = ViewEnum.VIEW;
+    private final Repl repl;
 
-    public ChessClient(String serverUrl) {
+    public ChessClient(String serverUrl, Repl repl) {
         server = new ServerFacade(serverUrl);
         websocket = new ClientWebsocketHandler(serverUrl, this);
         this.serverUrl = serverUrl;
+        this.repl = repl;
     }
 
     public String eval(String input) {
@@ -36,23 +38,47 @@ public class ChessClient {
             var tokens = input.toLowerCase().split(" ");
             var cmd = (tokens.length > 0) ? tokens[0] : "help";
             var params = Arrays.copyOfRange(tokens, 1, tokens.length);
-            return switch (cmd) {
-                case "register" -> register(params);
-                case "login" -> login(params);
-                case "logout" -> logout();
-                case "create" -> createGame(params);
-                case "list" -> listGames();
-                case "play" -> playGame(params);
-                case "observe" -> observeGame(params);
-                case "clear" -> clear();
-                case "highlight" -> highlightLegalMoves(params);
-                case "move" -> makeMove(params);
-                case "redraw" -> getGameView(currentGame, currentView, currentTeam == ChessGame.TeamColor.WHITE);
-                case "leave" -> leaveGame();
-                case "resign" -> resignGame();
-                case "quit" -> "quit";
-                default -> help();
-            };
+            if (this.state == StateEnum.SIGNEDOUT) {
+                if (cmd.equals("register") || cmd.equals("login") || cmd.equals("help") || cmd.equals("quit")) {
+                    return switch (cmd) {
+                        case "register" -> register(params);
+                        case "login" -> login(params);
+                        case "help" -> help();
+                        case "quit" -> "quit";
+                        default -> help();
+                    };
+                }
+                return "You must sign in first.";
+            }
+            else if (this.state == StateEnum.INGAME) {
+                if (cmd.equals("move") || cmd.equals("highlight") || cmd.equals("redraw") || cmd.equals("leave") || cmd.equals("resign") || cmd.equals("help")) {
+                    return switch (cmd) {
+                        case "move" -> makeMove(params);
+                        case "highlight" -> highlightLegalMoves(params);
+                        case "redraw" -> getGameView(currentGame, currentView, currentTeam == ChessGame.TeamColor.WHITE);
+                        case "leave" -> leaveGame();
+                        case "resign" -> resignGame();
+                        case "help" -> help();
+                        default -> help();
+                    };
+                }
+                return "Invalid command.";
+            }
+            else {
+                if (cmd.equals("register") || cmd.equals("login") || cmd.equals("logout") || cmd.equals("create") || cmd.equals("list") || cmd.equals("play") || cmd.equals("observe") || cmd.equals("clear") || cmd.equals("quit") || cmd.equals("help")) {
+                    return switch (cmd) {
+                        case "logout" -> logout();
+                        case "create" -> createGame(params);
+                        case "list" -> listGames();
+                        case "play" -> playGame(params);
+                        case "observe" -> observeGame(params);
+                        case "clear" -> clear();
+                        case "quit" -> "quit";
+                        default -> help();
+                    };
+                };
+                return "Invalid command.";
+            }
         } catch (Exception ex) {
             return ex.getMessage();
         }
@@ -158,13 +184,11 @@ public class ChessClient {
                 .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-//            String gameView = getGameView(game, currentView, teamColor == ChessGame.TeamColor.WHITE);
             state = StateEnum.INGAME;
             currentGameId = gameId;
             currentTeam = teamColor;
             currentGame = game;
             return String.format("You joined game %d as %s", oldGameId, color);
-//            return String.format("You joined game %d as %s\n%s", oldGameId, color, gameView);
         }
         throw new Exception("Expected: <GAME_ID> <WHITE|BLACK>");
     }
@@ -209,7 +233,7 @@ public class ChessClient {
                 - quit
                 """;
         }
-        if (state == StateEnum.INGAME) {
+        else if (state == StateEnum.INGAME) {
             return """
                 Available commands:
                 - move <start row> <start col> <end row> <end col>
@@ -219,8 +243,9 @@ public class ChessClient {
                 - resign
                 - help
                 """;
-        }
-        return """
+        } 
+        else {
+            return """
             Available commands:
             - create <GAME_NAME>
             - list
@@ -231,6 +256,7 @@ public class ChessClient {
             - quit
             - clear
             """;
+        }
     }
 
     private void assertSignedIn() throws Exception {
@@ -247,19 +273,19 @@ public class ChessClient {
             this.currentGame = game;
         }
     
-        // Draw handeling for white players
+        // Draw for white players
         if (viewType == ViewEnum.VIEW && isWhiteView) {
             view.append("WHITE's view: (Team Turn :" + this.currentGame.game().getTeamTurn().toString() + ")\n");
             drawBoardView(view, chessGame, true, new ArrayList<>());
         }
 
-        // Draw handeling for black players
+        // Draw for black players
         if (viewType == ViewEnum.VIEW && !isWhiteView) {
             view.append("BLACK's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
             drawBoardView(view, chessGame, false, new ArrayList<>());
         }
         
-        // Draw handeling for Observers
+        // Draw for Observers
         if (viewType == ViewEnum.OBSERVE) {
             view.append("OBSERVER's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
             view.append(getGameView(game, ViewEnum.VIEW, true));
@@ -293,15 +319,6 @@ public class ChessClient {
 
         view.append(isWhiteView ? "  a  b  c  d  e  f  g  h" : "  h  g  f  e  d  c  b  a");
     }
-
-
-
-
-
-
-
-
-
 
     private String highlightLegalMoves(String... params) throws Exception {
         assertSignedIn();
@@ -351,8 +368,23 @@ public class ChessClient {
 
         ChessPosition startPosition = new ChessPosition(startRow, startCol);
         ChessPosition endPosition = new ChessPosition(endRow, endCol);
+        Boolean moveNeedsPromotion = CheckIfMoveNeedsPromotion(startPosition, endPosition);
+        ChessPiece.PieceType promotionPiece = null;
+        if (moveNeedsPromotion) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Enter the piece you want to promote to (Q, R, B, N): ");
+            String promotionPieceType = scanner.nextLine().trim().toUpperCase();
+            promotionPiece = switch (promotionPieceType) {
+                case "Q" -> ChessPiece.PieceType.QUEEN;
+                case "R" -> ChessPiece.PieceType.ROOK;
+                case "B" -> ChessPiece.PieceType.BISHOP;
+                case "N" -> ChessPiece.PieceType.KNIGHT;
+                default -> throw new Exception("Invalid promotion piece.");
+            };
+        }
 
-        ChessMove move = new ChessMove(startPosition, endPosition, null);
+
+        ChessMove move = new ChessMove(startPosition, endPosition, promotionPiece);
         websocket.makeMove(authToken, currentGameId, move);
         return "";
     }
@@ -373,12 +405,6 @@ public class ChessClient {
     }
 
     public String resignGame() throws Exception {
-        websocket.resign(authToken, currentGameId);
-        currentGame = null;
-        currentTeam = null;
-        currentGameId = null;
-        currentView = ViewEnum.VIEW;
-        state = StateEnum.SIGNEDIN;
         Scanner scanner = new Scanner(System.in);
         System.out.print("Are you sure you want to resign? (y/n): ");
         String response = scanner.nextLine().trim().toLowerCase();
@@ -416,19 +442,40 @@ public class ChessClient {
         };
     }
 
+    private Boolean CheckIfMoveNeedsPromotion(ChessPosition startPosition, ChessPosition endPosition) {
+        ChessGame chessGame = currentGame.game();
+        ChessPiece piece = chessGame.getBoard().getPiece(startPosition);
+        if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {
+            if (piece.getTeamColor() == ChessGame.TeamColor.WHITE && endPosition.getRow() == 8) {
+                return true;
+            }
+            if (piece.getTeamColor() == ChessGame.TeamColor.BLACK && endPosition.getRow() == 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //WEBSOCKET UPDATERS
     public void loadGame(GameData game) {
         this.currentGame = game;
-        System.out.println("\n");
-        System.out.println(getGameView(game, currentView, currentTeam == ChessGame.TeamColor.WHITE));
+        String gameView = getGameView(game, currentView, currentTeam == ChessGame.TeamColor.WHITE);
+        repl.printMessage(gameView);
     }
 
     public void notification(String message) {
-        System.out.println(EscapeSequences.SET_TEXT_COLOR_BLUE + message + EscapeSequences.RESET_TEXT_COLOR);
+        if (message.contains("resigned")) {
+            currentGame = null;
+            currentTeam = null;
+            currentGameId = null;
+            state = StateEnum.SIGNEDIN;
+            currentView = ViewEnum.VIEW;
+        }
+        repl.printMessage(EscapeSequences.SET_TEXT_COLOR_BLUE + message + EscapeSequences.RESET_TEXT_COLOR);
     }
 
     public void errorMessage(String message) {
-        System.out.println(EscapeSequences.SET_TEXT_COLOR_RED + message + EscapeSequences.RESET_TEXT_COLOR);
+        repl.printMessage(EscapeSequences.SET_TEXT_COLOR_RED + message + EscapeSequences.RESET_TEXT_COLOR);
     }
 
 

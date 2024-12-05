@@ -281,7 +281,6 @@ public class WebSocketHandler {
             throw new Exception("Error: checkmate");
         }
         if (game.game().isInStalemate(teamColor)) {
-            ChessService.updateTeamTurn(game);
             throw new Exception("Error: stalemate");
         }
         if (game.game().isInCheck(teamColor)) {
