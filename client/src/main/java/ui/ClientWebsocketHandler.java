@@ -81,6 +81,7 @@ public class ClientWebsocketHandler extends Endpoint {
         try {
             UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.LEAVE, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
+            this.session.close();
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -90,6 +91,7 @@ public class ClientWebsocketHandler extends Endpoint {
         try {
             UserGameCommand command = new UserGameCommand(UserGameCommand.CommandType.RESIGN, authToken, gameId);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
+            this.session.close();
         } catch (IOException ex) {
             ex.printStackTrace();
         }

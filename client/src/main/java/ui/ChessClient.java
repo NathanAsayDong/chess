@@ -9,8 +9,6 @@ import chess.ChessPosition;
 import model.AuthData;
 import model.GameData;
 import model.ListGamesResult;
-import websocket.commands.UserGameCommand;
-import websocket.messages.ServerMessage;
 
 public class ChessClient {
     private String authToken = null;
@@ -22,7 +20,6 @@ public class ChessClient {
     private Integer currentGameId = null;
     private GameData currentGame = null;
     private ChessGame.TeamColor currentTeam = null;
-    private AuthData currentUser = null;
     private ViewEnum currentView = ViewEnum.VIEW;
     private final Repl repl;
 
@@ -105,7 +102,6 @@ public class ChessClient {
             
             AuthData auth = server.login(username, password);
             authToken = auth.authToken();
-            currentUser = auth;
             state = StateEnum.SIGNEDIN;
             return String.format("You logged in as %s.", username);
         }
@@ -117,7 +113,6 @@ public class ChessClient {
         server.logout(authToken);
         authToken = null;
         state = StateEnum.SIGNEDOUT;
-        currentUser = null;
         currentTeam = null;
         currentGame = null;
         return "You have been logged out.";
@@ -449,9 +444,7 @@ public class ChessClient {
             if (piece.getTeamColor() == ChessGame.TeamColor.WHITE && endPosition.getRow() == 8) {
                 return true;
             }
-            if (piece.getTeamColor() == ChessGame.TeamColor.BLACK && endPosition.getRow() == 1) {
-                return true;
-            }
+            return piece.getTeamColor() == ChessGame.TeamColor.BLACK && endPosition.getRow() == 1;
         }
         return false;
     }
