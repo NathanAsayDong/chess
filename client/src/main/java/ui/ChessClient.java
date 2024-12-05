@@ -47,6 +47,17 @@ public class ChessClient {
                 }
                 return "You must sign in first.";
             }
+            else if (this.currentView == ViewEnum.OBSERVE) {
+                if (cmd.equals("redraw") || cmd.equals("leave") || cmd.equals("help")) {
+                    return switch (cmd) {
+                        case "redraw" -> getGameView(currentGame, currentView, currentTeam == ChessGame.TeamColor.WHITE);
+                        case "leave" -> leaveGame();
+                        case "help" -> help();
+                        default -> help();
+                    };
+                }
+                return "Invalid command.";
+            }
             else if (this.state == StateEnum.INGAME) {
                 if (cmd.equals("move") || cmd.equals("highlight") ||
                         cmd.equals("redraw") || cmd.equals("leave") ||
@@ -210,8 +221,8 @@ public class ChessClient {
                 .filter(g -> g.gameID() == finalGameId)
                 .findFirst()
                 .orElseThrow(() -> new Exception("Game not found"));
-            String gameView = getGameView(game, currentView, false);
-            return String.format("You are now observing game %d\n%s", oldGameId, gameView);
+//            String gameView = getGameView(game, currentView, false);
+            return String.format("You are now observing game %d\n%s", oldGameId);
         }
         throw new Exception("Expected: <GAME_ID>");
     }
@@ -231,6 +242,14 @@ public class ChessClient {
                 - login <USERNAME> <PASSWORD>
                 - help
                 - quit
+                """;
+        }
+        else if (currentView == ViewEnum.OBSERVE) {
+            return """
+                Available commands:
+                - redraw
+                - leave
+                - help
                 """;
         }
         else if (state == StateEnum.INGAME) {
@@ -280,15 +299,15 @@ public class ChessClient {
         }
 
         // Draw for black players
-        if (viewType == ViewEnum.VIEW && !isWhiteView) {
+        else if (viewType == ViewEnum.VIEW && !isWhiteView) {
             view.append("BLACK's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
             drawBoardView(view, chessGame, false, new ArrayList<>());
         }
         
         // Draw for Observers
-        if (viewType == ViewEnum.OBSERVE) {
+        else if (viewType == ViewEnum.OBSERVE) {
             view.append("OBSERVER's view: (Team Turn: " + this.currentGame.game().getTeamTurn().toString() + ")\n");
-            view.append(getGameView(game, ViewEnum.VIEW, true));
+            drawBoardView(view, chessGame, true, new ArrayList<>());
         }
     
         return view.toString();
