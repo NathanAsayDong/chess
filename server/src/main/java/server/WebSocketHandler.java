@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import chess.ChessGame;
 import chess.ChessMove;
+import chess.ChessPosition;
 import model.AuthData;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -148,12 +149,7 @@ public class WebSocketHandler {
 
             GameData updateGame = chessService.makeMove(game, message.getMove());
             ChessGame.TeamColor opponentColor = teamColor == ChessGame.TeamColor.WHITE ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
-            if (updateGame.game().isInCheck(opponentColor)) {
-                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-                notification.addNotificationMessage(opponentColor + " is in check");
-                broadcastToAllButMe(session, notification, updateGame.gameID());
-            }
-            else if (updateGame.game().isInCheckmate(opponentColor)) {
+            if (updateGame.game().isInCheckmate(opponentColor)) {
                 ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
                 notification.addNotificationMessage(opponentColor + " is in checkmate. " + authData.username() + " wins!");
                 broadcastToAllButMe(session, notification, updateGame.gameID());
@@ -163,9 +159,16 @@ public class WebSocketHandler {
                 notification.addNotificationMessage("Game is in stalemate. Game is now over.");
                 broadcastToAllButMe(session, notification, updateGame.gameID());
             }
+            else if (updateGame.game().isInCheck(opponentColor)) {
+                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+                notification.addNotificationMessage(opponentColor + " is in check");
+                broadcastToAllButMe(session, notification, updateGame.gameID());
+            }
             else {
                 ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-                notification.addNotificationMessage("Player " + authData.username() + " made a move");
+                notification.addNotificationMessage("Player " + authData.username() + " made a move from"
+                        + message.getMove().getEndPosition().toString()
+                        + " to " + message.getMove().getEndPosition().toString());
                 broadcastToAllButMe(session, notification, updateGame.gameID());
             }
             ServerMessage response = new ServerMessage(LOAD_GAME);
@@ -304,6 +307,23 @@ public class WebSocketHandler {
 
     private boolean checkIfMovePutsGameInStalemate(GameData game, ChessGame.TeamColor teamColor) {
         return game.game().isInStalemate(teamColor);
+    }
+
+    private String convertChessPositionToString(ChessPosition position) {
+        int row = position.getRow();
+        int column = position.getColumn();
+        String colString = switch (column) {
+            case 1 -> "a";
+            case 2 -> "b";
+            case 3 -> "c";
+            case 4 -> "d";
+            case 5 -> "e";
+            case 6 -> "f";
+            case 7 -> "g";
+            case 8 -> "h";
+            default -> "";
+        };
+        return "Row " + row + " column " + colString;
     }
 
 }

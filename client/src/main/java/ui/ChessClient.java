@@ -361,9 +361,6 @@ public class ChessClient {
         if (piece.getPieceType() == null) {
             throw new Exception("No piece at that position.");
         }
-        if (piece.getTeamColor() != currentTeam) {
-            throw new Exception("You can only highlight moves for your own pieces.");
-        }
 
         Collection<ChessMove> validMoves = chessGame.validMoves(position);
         drawBoardView(view, chessGame, currentTeam == ChessGame.TeamColor.WHITE, validMoves);
