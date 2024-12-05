@@ -143,14 +143,32 @@ public class WebSocketHandler {
             AuthData authData = userService.getAuthByToken(message.getAuthToken());
             ChessGame.TeamColor teamColor = getTeamColorFromAuth(message);
 
-            CheckGameStatus(game, teamColor);
+            CheckGameEnded(game, teamColor);
             CheckIfValidMove(game, message.getMove());
             CheckIfItsPlayersTurn(game, teamColor);
 
             GameData updateGame = chessService.makeMove(game, message.getMove());
-            ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
-            notification.addNotificationMessage("Player " + authData.username() + " made a move");
-            broadcastToAllButMe(session, notification, updateGame.gameID());
+            ChessGame.TeamColor opponentColor = teamColor == ChessGame.TeamColor.WHITE ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
+            if (updateGame.game().isInCheck(opponentColor)) {
+                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+                notification.addNotificationMessage(opponentColor + " is in check");
+                broadcastToAllButMe(session, notification, updateGame.gameID());
+            }
+            else if (updateGame.game().isInCheckmate(opponentColor)) {
+                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+                notification.addNotificationMessage(opponentColor + " is in checkmate. " + authData.username() + " wins!");
+                broadcastToAllButMe(session, notification, updateGame.gameID());
+            }
+            else if (CheckIfMovePutsGameInStalemate(updateGame, opponentColor)) {
+                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+                notification.addNotificationMessage("Game is in stalemate. Game is now over.");
+                broadcastToAllButMe(session, notification, updateGame.gameID());
+            }
+            else {
+                ServerMessage notification = new ServerMessage(ServerMessage.ServerMessageType.NOTIFICATION);
+                notification.addNotificationMessage("Player " + authData.username() + " made a move");
+                broadcastToAllButMe(session, notification, updateGame.gameID());
+            }
             ServerMessage response = new ServerMessage(LOAD_GAME);
             response.addGameData(updateGame);
             broadcastToAll(response, updateGame.gameID());
@@ -276,16 +294,17 @@ public class WebSocketHandler {
         }
     }
 
-    private void CheckGameStatus(GameData game, ChessGame.TeamColor teamColor) throws Exception {
+    private void CheckGameEnded(GameData game, ChessGame.TeamColor teamColor) throws Exception {
         if (game.game().isInCheckmate(teamColor)) {
-            throw new Exception("Error: checkmate");
+            throw new Exception("Error: Game has concluded");
         }
-        if (game.game().isInStalemate(teamColor)) {
-            throw new Exception("Error: stalemate");
+        if (CheckIfMovePutsGameInStalemate(game, teamColor)) {
+            throw new Exception("Error: Game has concluded");
         }
-        if (game.game().isInCheck(teamColor)) {
-            throw new Exception("Error: check");
-        }
+    }
+
+    private boolean CheckIfMovePutsGameInStalemate(GameData game, ChessGame.TeamColor teamColor) {
+        return game.game().isInStalemate(teamColor);
     }
 
 }
