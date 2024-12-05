@@ -9,9 +9,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.http.WebSocket;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
-import chess.ChessMove;
 import com.google.gson.Gson;
 
 import chess.ChessGame;
@@ -19,8 +17,6 @@ import model.AuthData;
 import model.GameData;
 import model.ListGamesResult;
 import model.UserData;
-import websocket.commands.UserGameCommand;
-import websocket.messages.ServerMessage;
 
 public class ServerFacade implements WebSocket.Listener {
     private final String serverUrl;

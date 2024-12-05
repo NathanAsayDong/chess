@@ -1,4 +1,4 @@
-package websocket;
+package server;
 
 import java.util.Collection;
 import java.util.Map;
@@ -18,7 +18,6 @@ import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import com.google.gson.Gson;
 
 import model.GameData;
-import model.UserData;
 import service.ChessService;
 import service.UserService;
 import websocket.commands.UserGameCommand;

@@ -3,8 +3,6 @@ package ui;
 import com.google.gson.Gson;
 import websocket.messages.ServerMessage;
 
-import javax.management.Notification;
-
 public class NotificationHandler {
     private final Gson gson = new Gson();
     private final ChessClient client;

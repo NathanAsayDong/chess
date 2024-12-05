@@ -3,16 +3,12 @@ package ui;
 import chess.ChessGame;
 import chess.ChessMove;
 import com.google.gson.Gson;
-import model.AuthData;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ServerMessage;
 
-import javax.management.Notification;
 import java.net.URI;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutionException;
 import javax.websocket.*;
 
 

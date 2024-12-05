@@ -23,7 +23,6 @@ import service.UserService;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
-import websocket.WebSocketHandler;
 
 public class Server {
     static UserDao topLevelUserDao;
