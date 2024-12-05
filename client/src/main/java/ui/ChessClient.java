@@ -368,7 +368,7 @@ public class ChessClient {
 
         ChessPosition startPosition = new ChessPosition(startRow, startCol);
         ChessPosition endPosition = new ChessPosition(endRow, endCol);
-        Boolean moveNeedsPromotion = CheckIfMoveNeedsPromotion(startPosition, endPosition);
+        Boolean moveNeedsPromotion = checkIfMoveNeedsPromotion(startPosition, endPosition);
         ChessPiece.PieceType promotionPiece = null;
         if (moveNeedsPromotion) {
             Scanner scanner = new Scanner(System.in);
@@ -442,7 +442,7 @@ public class ChessClient {
         };
     }
 
-    private Boolean CheckIfMoveNeedsPromotion(ChessPosition startPosition, ChessPosition endPosition) {
+    private Boolean checkIfMoveNeedsPromotion(ChessPosition startPosition, ChessPosition endPosition) {
         ChessGame chessGame = currentGame.game();
         ChessPiece piece = chessGame.getBoard().getPiece(startPosition);
         if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {

@@ -129,8 +129,8 @@ public class SqlUserDao implements UserDao {
 
     private int userExecuteUpdate(String statement, Object... params) throws DataAccessException {
         try {
-            SqlExecuteUpdate update = new SqlExecuteUpdate();
-            return update.executeUpdate(statement, params);
+            SqlExecuteUpdate newUpdate = new SqlExecuteUpdate();
+            return newUpdate.executeUpdate(statement, params);
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }
